@@ -225,7 +225,7 @@ def create_acc_loss_graph():
     ax2.plot(times,val_losses,label="val_loss")
     ax2.legend(loc=2)
 
-    file_name = "batchSize_" str(BATCH_SIZE) + "_epoch_" + str(EPOCH)
+    file_name = "batchSize_" + str(BATCH_SIZE) + "_epoch_" + str(EPOCH)
     fig.savefig("./Plots/" + file_name + ".pdf")
     plt.show()
 create_acc_loss_graph()

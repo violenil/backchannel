@@ -118,22 +118,24 @@ def test(net):
     total = 0
     acc = 0
     with torch.no_grad():
-        for i in tqdm(range(len(test_X), BATCH_TEST)):
+        for i in tqdm(range(0,len(test_X),BATCH_TEST)):
             batch_X = test_X[i:i+BATCH_SIZE].view(-1,1,N_ROWS,N_COLS).to(device)
             batch_y = test_y[i:i+BATCH_SIZE].to(device)
             #real_class = torch.argmax(test_y[i])
             #net_out = net(test_X[i].view(-1,1,N_FEATURES).to(device))[0]
             #predicted_class = torch.argmax(net_out)
-            #if predicted_class == real_class:
-            #    correct += 1
-            #total += 1
+            #loss = loss_function(outputs,y)
             outputs = net(batch_X)
-            matches = [torch.argmax(i) == torch.argmax(j) for i, j in zip(outputs, batch_y)]
+
+            matches = [ torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs,batch_y)]
             acc += matches.count(True)
 
+            #if predicted_class == real_class:
+                #correct += 1
+            #total += 1
         acc /= len(test_X)
 
-    print(f"Accuracy: {round(acc, 3)}")
+    print(f"Accuracy: {round(acc,3)}")
 
 def fwd_pass(X,y, train=False):
     if train:

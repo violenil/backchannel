@@ -11,7 +11,7 @@ from sklearn.utils import shuffle
 import matplotlib.pyplot as plt
 from matplotlib import style
 
-%matplotlib qt
+#%matplotlib qt
 style.use("ggplot")
 
 positive_samples = np.load("../out2/out_pos2/data.mfcc.npy")
@@ -104,7 +104,7 @@ test_y = y[-val_size:]
 
 BATCH_SIZE =1024
 BATCH_TEST = BATCH_SIZE
-EPOCHS 2100
+EPOCHS =200
 optimizer = optim.Adam(net.parameters(), lr=0.001)
 loss_function = nn.MSELoss()
 

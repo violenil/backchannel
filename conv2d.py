@@ -11,16 +11,21 @@ from sklearn.utils import shuffle
 import matplotlib.pyplot as plt
 from matplotlib import style
 
+#import configs
+from config import BATCH_SIZE, BATCH_TEST, EPOCHS
+from config import loss_function
+from config import learning_rate as lr
+
 #%matplotlib qt
 style.use("ggplot")
 
 positive_samples = np.load("../out2/out_pos2/data.mfcc.npy")
 negative_samples = np.load("../out2/out_neg2/data.mfcc.npy")
 
-#check balanceness of the data.
-print(len(positive_samples))
-print(len(negative_samples))
-print(positive_samples.shape)
+#check balancedness of the data.
+#print(len(positive_samples))
+#print(len(negative_samples))
+#print(positive_samples.shape)
 
 N_ROWS = positive_samples[0].shape[0]
 N_COLS = positive_samples[0].shape[1]
@@ -33,8 +38,6 @@ for i in range(positive_samples.shape[0]):
 for i in range(negative_samples.shape[0]):
     training_data.append([negative_samples[i,:,:],np.eye(2)[1]])
     #training_data.append([np.concatenate(negative_samples[i]),np.eye(2)[1]])
-
-print(len(training_data))
 
 random.shuffle(training_data) #shuffle the data!
 
@@ -64,7 +67,6 @@ class ConvNet(nn.Module):
         x = F.max_pool2d(F.relu(self.conv2(x)),(1,2))
 
         if self._to_linear is None:
-            #print(x[0].shape)
             self._to_linear = x[0].shape[0]*x[0].shape[1]*x[0].shape[2]
 
         return x
@@ -74,7 +76,7 @@ class ConvNet(nn.Module):
 
         x = x.view(-1, self._to_linear)# if x < 0 then 0 otherwise x.
         x = F.relu(self.fc1(x))
-        x = self.fc2(x) 
+        x = self.fc2(x)
         return F.softmax(x, dim=1)
 
 net = ConvNet().to(device)
@@ -95,18 +97,7 @@ train_y = y[:-val_size]
 test_X = X[-val_size:]
 test_y = y[-val_size:]
 
-#print(len(train_X))
-#print(len(test_X))
-
-#print(train_X[0])
-
-
-
-BATCH_SIZE =1024
-BATCH_TEST = BATCH_SIZE
-EPOCHS =200
-optimizer = optim.Adam(net.parameters(), lr=0.001)
-loss_function = nn.MSELoss()
+optimizer = optim.Adam(net.parameters(), lr=0.0001)
 
 def train(net):
     for epoch in range(EPOCHS):

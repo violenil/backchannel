@@ -179,7 +179,7 @@ print(MODEL_NAME)
 
 def train():
     BATCH_SIZE = 512
-    EPOCHS = 10
+    EPOCHS = 100
     with open(MODEL_NAME,"a") as f:
         for epoch in range(EPOCHS):
             for i in tqdm(range(0,len(train_X),BATCH_SIZE)):

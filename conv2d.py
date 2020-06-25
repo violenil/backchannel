@@ -131,7 +131,7 @@ def test(net):
             matches = [torch.argmax(i) == torch.argmax(j) for i, j in zip(outputs, batch_y)]
             acc += matches.count(True)
 
-        acc /= len(text_X)
+        acc /= len(test_X)
     print(f"Accuracy: {round(correct/total, 3)}")
 def fwd_pass(X,y, train=False):
     if train:

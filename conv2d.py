@@ -179,7 +179,7 @@ print(MODEL_NAME)
 
 def train():
     BATCH_SIZE = 512
-    EPOCHS = 100
+    EPOCHS = 10
     with open(MODEL_NAME,"a") as f:
         for epoch in range(EPOCHS):
             for i in tqdm(range(0,len(train_X),BATCH_SIZE)):
@@ -225,7 +225,7 @@ def create_acc_loss_graph():
     ax2.plot(times,val_losses,label="val_loss")
     ax2.legend(loc=2)
 
-    file_name = "batchSize_" + str(BATCH_SIZE) + "_epoch_" + str(EPOCH)
+    file_name = "batchSize_" + str(BATCH_SIZE) + "_epoch_" + str(EPOCHS)
     fig.savefig("./Plots/" + file_name + ".pdf")
     plt.show()
 create_acc_loss_graph()

@@ -147,19 +147,21 @@ def fwd_pass(X,y, train=False):
 
     return acc, loss
 
+train(net)
+test(net)
+
 def test(size=32):
     random_start = np.random.randint(len(test_X)-size)
 
-    X,y = test_X[random_start:random_start+size], test_y[random_start:random_start+size]
+    X,y = test_X[random_start:random_start+size], test_y [random_start:random_start+size]
     with torch.no_grad():
-        val_acc, val_loss = fwd_pass(X.view(-1,1,N_FEATURES).to(device), y.to(device))
+        val_acc, val_loss = fwd_pass(X.view(-1,1,N_ROWS,N_COLS).to(device),y.to(device))
 
-    return val_acc, val_loss
+    return val_acc,val_loss
 
-train(net)
-test(net)
 val_acc, val_loss = test(size=100)
-print(val_acc, val_loss)
+print(val_acc,val_loss)
+
 
 MODEL_NAME = f"model-{int(time.time())}.log"
 

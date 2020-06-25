@@ -132,7 +132,9 @@ def test(net):
             acc += matches.count(True)
 
         acc /= len(test_X)
-    print(f"Accuracy: {round(correct/total, 3)}")
+
+    print(f"Accuracy: {round(acc, 3)}")
+
 def fwd_pass(X,y, train=False):
     if train:
         net.zero_grad()

@@ -53,20 +53,22 @@ class ConvNet(nn.Module):
         super().__init__()
         self.c1 = 16
 
-        self.conv2 = nn.Conv2d(in_channels=1, out_channels=self.c1, kernel_size=(13,5))
+        self.conv2 = nn.Conv2d(in_channels=1, out_channels=self.c1, kernel_size=(13,10))
 
-        x = torch.randn(N_ROWS, N_COLS).view(-1,1,N_ROWS,N_COLS)
+        x = torch.randn(N_ROWS,N_COLS).view(-1,1,N_ROWS, N_COLS)
         self._to_linear = None
 
         self.convs(x)
 
-        self.fc1 = nn.Linear(self._to_linear,512)
-        self.fc2 = nn.Linear(512,2)
+        self.fc1 = nn.Linear(self._to_linear,128)
+        self.fc2 = nn.Linear(128,128)
+        self.fc3 = nn.Linear(128,2)
 
     def convs(self, x):
         x = F.max_pool2d(F.relu(self.conv2(x)),(1,2))
 
         if self._to_linear is None:
+            print(x[0].shape)
             self._to_linear = x[0].shape[0]*x[0].shape[1]*x[0].shape[2]
 
         return x
@@ -74,9 +76,10 @@ class ConvNet(nn.Module):
     def forward(self, x):
         x = self.convs(x)
 
-        x = x.view(-1, self._to_linear)# if x < 0 then 0 otherwise x.
+        x = x.view(-1, self._to_linear)
         x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
         return F.softmax(x, dim=1)
 
 net = ConvNet().to(device)

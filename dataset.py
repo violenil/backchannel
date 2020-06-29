@@ -1,7 +1,9 @@
 import random
-
 import numpy as np
 import torch
+
+
+
 """
 Holds a dataset.
 """
@@ -51,3 +53,4 @@ class dataset(object):
         self.X = (X - self.min) / (self.max - self.min) * 2 - 1  # scale between -1 and 1
 
         self.y = torch.Tensor([i[1] for i in training_data])  # i[1] -> one hot encoding vector
+

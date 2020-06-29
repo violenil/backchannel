@@ -2,19 +2,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
 import numpy as np
 from tqdm import tqdm
 import time
+import json
+
 
 """
 CNN for backchanneling.
 """
-class ConvNet(nn.Module):
+class conv_net(nn.Module):
 
-    def __init__(self, input_rows, input_cols):
+    def __init__(self, setup, input_rows, input_cols, max, min):
         """
         Initializes the CNN.
+        :param setup: JSON describing the configuration of the CNN.
+        :param max: maximum value of the training dataset before scaling.
+        :param min: minimum value of the training dataset before scaling.
         :param input_rows: number of mfcc features (#rows of the matrix)
         :param input_cols: number of frames (#cols of the matrix)
         """
@@ -28,16 +32,32 @@ class ConvNet(nn.Module):
             self.device = torch.device("cpu")
             print("Running on the CPU")
 
+        # values used to scale the training dataset.
+        self.max = max
+        self.min = min
 
-        # output of the first c.l.
-        self.c1 = 16
-
-
+        # i.e. number of mfcc
         self.input_rows = input_rows
+        # number of frames
         self.input_cols = input_cols
 
-        # convolutional layer.
-        self.conv2 = nn.Conv2d(in_channels=1, out_channels=self.c1, kernel_size=(13,10))
+        # read the CNN configuraion file
+        with open(setup) as f:
+            config = json.load(f)
+        print(config)
+        print(type(config))
+
+        convolutional_layers = []
+
+        # set up convolutional layer(s).
+        for cname, properties in config['convolutions'].items():
+            in_channels = properties['in_channels']
+            out_channels = properties['out_channels']
+            kernel_width = properties['kernel_width']
+            convolutional_layers.append( nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(input_rows,kernel_width)) )
+
+        # So that pythorch recognises the layers.
+        self.convolutionals = nn.ModuleList(convolutional_layers)
 
         # mock feature for getting the number of output features of the c.l.
         x = torch.randn(input_rows,input_cols).view(-1,1,input_rows, input_cols)
@@ -45,12 +65,24 @@ class ConvNet(nn.Module):
 
         self._to_linear = None
 
+        # Get the output features of the c.l.
         self.convs(x)
 
         # fully connected layers
-        self.fc1 = nn.Linear(self._to_linear,128)
-        self.fc2 = nn.Linear(128,128)
-        self.fc3 = nn.Linear(128,2)
+        fcs = []
+
+        # set up the linear layer(s).
+        for cname, properties in config['fully_connected'].items():
+            input = properties['input']
+            output = properties['output']
+
+            # a -1 in the number of input neurons refers to the size of the features after the convolutional layers.
+            if input == -1:
+                fcs.append ( nn.Linear(self._to_linear,output) )
+            else:
+                fcs.append ( nn.Linear(input, output) )
+
+        self.linears = nn.ModuleList(fcs)
 
         # make this available in whatever the device is
         self.to(self.device)
@@ -62,7 +94,8 @@ class ConvNet(nn.Module):
         :param x: input
         :return: x after the convolution.
         """
-        x = F.max_pool2d(F.relu(self.conv2(x)),(1,2))
+        for layer in self.convolutionals:
+            x = F.max_pool2d(F.relu(layer(x)),(1,2))
 
         if self._to_linear is None:
             print(x[0].shape)
@@ -80,9 +113,12 @@ class ConvNet(nn.Module):
         x = self.convs(x)
 
         x = x.view(-1, self._to_linear)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+
+        for layer in self.linears[:-1] :
+            x = F.relu(layer(x))
+
+        x = self.linears[-1] (x)
+
         return F.softmax(x, dim=1)
 
 
@@ -223,3 +259,18 @@ class ConvNet(nn.Module):
                 f.write(
                     f"{file_name},{round(time.time(), 3)},{round(float(acc), 2)},{round(float(loss), 4)},{round(float(val_acc), 2)},{round(float(val_loss), 4)}\n")
 
+    def dump(self, path):
+        """
+        Write the model into a file.
+        :param path: path to the file to be written.
+        """
+        torch.save(self,path)
+
+    @staticmethod
+    def load(path):
+        """
+        Loads a model from a file.
+        :param path:
+        :return: CNN with weights already set up.
+        """
+        return torch.load(path)

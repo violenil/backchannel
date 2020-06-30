@@ -1,6 +1,6 @@
 import argparse
 
-from config import BATCH_SIZE, EPOCHS, learning_rate, CNN_CONFIG
+from config import BATCH_SIZE, EPOCHS, learning_rate, CNN_CONFIG, REPORT_FILE
 class parser(object):
 
 
@@ -48,9 +48,15 @@ class parser(object):
 
         self.train_parser.add_argument("-t","--train", action="store_true", default=True,help='Learn from the training samples and predict on the validation data')
 
-        self.train_parser.add_argument("-r", "--report", action="store_true", default=False,help='Learn from the training data, and iteratively predict on the validation. Get a summary of the overall process.')
+        self.train_parser.add_argument("-r", "--report", default='', nargs='?', metavar='report_file',
+        help='Learn from the training data, and iteratively predict on the validation. Get a summary of the overall process.')
 
         self.train_parser.set_defaults(action="train")
 
     def parse_args(self):
-        return self.parser.parse_args()
+        args = vars( self.parser.parse_args() )
+
+        if args ['report'] == None:
+            args['report'] = REPORT_FILE
+
+        return args

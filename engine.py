@@ -2,7 +2,6 @@ import ai
 from config import loss_function
 import dataset
 import viewer
-import time
 
 
 def train(args):
@@ -19,15 +18,14 @@ def train(args):
     # set up a convolutional neural network.
     net = ai.conv_net(args['C'],train_dataset.nmfcc,train_dataset.nframes,train_dataset.max,train_dataset.min)
 
-    if args ['report'] == True:
+    # optional flag with optional parameter.
+    if args ['report'] != '':
 
-        # where to save the reported accuracy, loss, etc.
-        MODEL_NAME = f"model-{int(time.time())}.log"
         # fit the data and report the results.
-        net.reported_fit(train_dataset.X, train_dataset.y, val_dataset.X, val_dataset.y , loss_function, args['lr'], args['b'], args['e'], MODEL_NAME)
+        net.reported_fit(train_dataset.X, train_dataset.y, val_dataset.X, val_dataset.y , loss_function, args['lr'], args['b'], args['e'], args['report'])
 
         # show how the data fitted w.r.t. the training and validation data.
-        viewer.create_acc_loss_graph(MODEL_NAME)
+        viewer.create_acc_loss_graph(args['report'])
 
     # dont report anything.
     elif args['train'] == True:

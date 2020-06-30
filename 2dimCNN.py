@@ -22,7 +22,7 @@ if __name__ == '__main__':
     p = parser.parser()
 
     # parse the command-line arguments.
-    args = vars(p.parse_args())
+    args = p.parse_args()
 
     # print the arguments
     print(args)

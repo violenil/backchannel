@@ -187,7 +187,7 @@ class conv_net(nn.Module):
 
 
 
-    def fwd_pass( self, X, y, optimizer, loss_function, train=False):
+    def fwd_pass( self, X, y, optimizer, loss_function, train=False, report=True):
         """
         forwards the data, and performs backpropagation and optimiztion when `train` flag is True.
         Also reports the accuracy and loss.
@@ -201,15 +201,18 @@ class conv_net(nn.Module):
         if train:
             self.zero_grad()
         outputs = self(X)
-        matches = [torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs, y)]
-        acc = matches.count(True)/len(matches)
         loss = loss_function(outputs, y)
 
         if train:
             loss.backward()
             optimizer.step()
 
-        return acc, loss
+        if report:
+            matches = [torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs, y)]
+            acc = matches.count(True)/len(matches)
+            return acc, loss
+        else:
+            return None,None
 
 
     def test_chunk(self, X, y , optimizer, loss_function, size=32):
@@ -252,8 +255,10 @@ class conv_net(nn.Module):
                     batch_X = X_train[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
                     batch_y = y_train[i:i+batch_size].to(self.device)
 
-                    acc, loss = self.fwd_pass (batch_X,batch_y,optimizer,loss_function, train=True)
 
+                    self.fwd_pass(batch_X, batch_y, optimizer, loss_function, train=True, report=False)
+
+                acc, loss = self.fwd_pass(batch_X, batch_y, optimizer, loss_function, train=True, report=True)
                 val_acc, val_loss = self.test_chunk(X_val, y_val, optimizer, loss_function, size=X_val.shape[0] - 1)
                 print(f"acc: {round(float(acc), 2)}, loss: {round(float(loss), 4)}, val_acc: {round(float(val_acc), 2)}, val_loss: {round(float(val_loss), 4)}")
                 f.write(

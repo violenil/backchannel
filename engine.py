@@ -25,7 +25,7 @@ def train(args):
         net.reported_fit(train_dataset.X, train_dataset.y, val_dataset.X, val_dataset.y , loss_function, args['lr'], args['b'], args['e'], args['report'])
 
         # show how the data fitted w.r.t. the training and validation data.
-        viewer.create_acc_loss_graph(args['report'])
+        viewer.create_acc_loss_graph(args['report'],args['report'])
 
     # dont report anything.
     elif args['train'] == True:

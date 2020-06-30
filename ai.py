@@ -257,7 +257,7 @@ class conv_net(nn.Module):
                 val_acc, val_loss = self.test_chunk(X_val, y_val, optimizer, loss_function, size=X_val.shape[0] - 1)
                 print(f"acc: {round(float(acc), 2)}, loss: {round(float(loss), 4)}, val_acc: {round(float(val_acc), 2)}, val_loss: {round(float(val_loss), 4)}")
                 f.write(
-                    f"{file_name},{round(time.time(), 3)},{round(float(acc), 2)},{round(float(loss), 4)},{round(float(val_acc), 2)},{round(float(val_loss), 4)}\n")
+                    f"{file_name},{round(time.time(), 3)},{float(acc)},{float(loss)},{float(val_acc)},{float(val_loss)}\n")
 
     def dump(self, path):
         """

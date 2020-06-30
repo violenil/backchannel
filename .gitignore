@@ -1,4 +1,6 @@
 *.log
+*.json
 .idea/*
 Plots/*
 __pycache__/*
+cnn_configs/*

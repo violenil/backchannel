@@ -56,7 +56,7 @@ class parser(object):
     def parse_args(self):
         args = vars( self.parser.parse_args() )
 
-        if args ['report'] == None:
+        if 'report' in args.keys() and args ['report'] == None:
             args['report'] = REPORT_FILE
 
         return args

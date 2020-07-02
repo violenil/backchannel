@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import time
 import json
+import random
 
 
 """
@@ -23,6 +24,12 @@ class conv_net(nn.Module):
         :param input_cols: number of frames (#cols of the matrix)
         """
         super().__init__()
+
+        # rounding used on the losses
+        self.eps = 7
+
+        # minimum number of epochs without loss change.
+        self.check_last_losses = 5
 
         # set up a cuda device if available
         if torch.cuda.is_available():
@@ -136,7 +143,12 @@ class conv_net(nn.Module):
         optimizer = optim.Adam(self.parameters(), lr=lr)
 
         for epoch in range(epochs):
-            for i in tqdm(range(0, len(X), batch_size)):
+
+            # set how the batches are gonna be forwaded.
+            random_idxs = list(range(0, len(X), batch_size))
+
+            random.shuffle(random_idxs)
+            for i in tqdm(random_idxs):
 
                 # get the batches
                 batch_X = X[i:i+batch_size].view(-1,1,self.input_rows, self.input_cols).to(self.device)
@@ -215,10 +227,10 @@ class conv_net(nn.Module):
             return None,None
 
 
-    def test_chunk(self, X, y , optimizer, loss_function, size=32):
+    def predict_random_chunk(self, X, y , optimizer, loss_function, size=32):
         """
-        Get the accuracy and lost a random chunk of test data.
-        :param X: test samples
+        Get the accuracy and lost a random chunk of data.
+        :param X: samples to be predicted
         :param y: one hot encoded vector.
         :param optimizer:
         :param loss_function:
@@ -234,6 +246,17 @@ class conv_net(nn.Module):
             acc, loss = self.fwd_pass(X.view(-1,1,self.input_rows,self.input_cols).to(self.device),y.to(self.device), optimizer, loss_function)
         return acc, loss
 
+
+    def is_learning(self, lossess, curr_loss):
+
+        log = [ round (float(loss),self.eps) for loss in lossess [-self.check_last_losses:]]
+
+        if log == [round(float(curr_loss),self.eps)]*self.check_last_losses:
+            return False
+
+        return True
+
+
     def reported_fit(self, X_train, y_train, X_val, y_val, loss_function, lr, batch_size, epochs,file_name):
         """
         Trains the CNN and reports accuracy and loss on both validation and training data at each epoch. The reported data is also
@@ -248,21 +271,47 @@ class conv_net(nn.Module):
         :param epochs:
         :param file_name: write the reported accuracies and losses into this file.
         """
+
+
+
         optimizer = optim.Adam(self.parameters(), lr=lr)
+
+        # track last losses to stop the training if it's not learning anything.
+        losses = []
+
+        # open file to log the accuracies.
         with open(file_name,"a") as f:
             for epoch in range(epochs):
                 for i in tqdm(range(0,len(X_train),batch_size)):
+
+                    # get our batches
                     batch_X = X_train[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
                     batch_y = y_train[i:i+batch_size].to(self.device)
 
-
+                    # forward.
                     self.fwd_pass(batch_X, batch_y, optimizer, loss_function, train=True, report=False)
 
-                acc, loss = self.fwd_pass(batch_X, batch_y, optimizer, loss_function, train=True, report=True)
-                val_acc, val_loss = self.test_chunk(X_val, y_val, optimizer, loss_function, size=X_val.shape[0] - 1)
-                print(f"acc: {round(float(acc), 2)}, loss: {round(float(loss), 4)}, val_acc: {round(float(val_acc), 2)}, val_loss: {round(float(val_loss), 4)}")
+                # get the number of random features to test. In the rare case where the training size is smaller than the validation
+                # get the whole size of training.
+                test_size = X_val.shape[0] - 1 if X_val.shape[0] - 1 < X_train.shape[0] else X_train.shape[0] - 1
+
+                # Get the accuracies of a random chunk of the training data.
+                acc, loss = self.predict_random_chunk(X_train, y_train, optimizer, loss_function, size=test_size)
+
+
+                # Get the accuracies of a random chunk of the test data.
+                val_acc, val_loss = self.predict_random_chunk(X_val, y_val, optimizer, loss_function, size=test_size)
+
+                losses.append(val_loss)
+
+                # Print accuracies to stdout and log them into the file.
+                print(f"acc: {round(float(acc), 2)}, loss: {round(float(loss), 8)}, val_acc: {round(float(val_acc), 2)}, val_loss: {round(float(val_loss), 8)}")
                 f.write(
                     f"{file_name},{round(time.time(), 3)},{float(acc)},{float(loss)},{float(val_acc)},{float(val_loss)}\n")
+
+                if not self.is_learning(losses,val_loss):
+                    print("I'm not learning :(. Try other hyperparameters. Stopping.")
+                    return
 
     def dump(self, path):
         """

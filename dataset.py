@@ -28,10 +28,10 @@ class dataset(object):
 
         training_data = []
         for i in range(positive.shape[0]):
-            training_data.append([positive[i, :, :], np.eye(2)[0]])
+            training_data.append([positive[i, :, :], 0])
 
         for i in range(negative.shape[0]):
-            training_data.append([negative[i, :, :], np.eye(2)[1]])
+            training_data.append([negative[i, :, :], 1])
 
         # shuffle the data!
         random.shuffle(training_data)
@@ -52,5 +52,6 @@ class dataset(object):
 
         self.X = (X - self.min) / (self.max - self.min) * 2 - 1  # scale between -1 and 1
 
-        self.y = torch.Tensor([i[1] for i in training_data])  # i[1] -> one hot encoding vector
+        y = torch.Tensor([i[1] for i in training_data])  # i[1] -> one hot encoding vector
 
+        self.y = y.type(torch.long)

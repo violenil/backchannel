@@ -126,7 +126,7 @@ class conv_net(nn.Module):
 
         x = self.linears[-1] (x)
 
-        return F.softmax(x, dim=1)
+        return x #F.softmax(x, dim=1)
 
 
 
@@ -167,6 +167,9 @@ class conv_net(nn.Module):
             print(f"Epoch: {epoch}. Loss: {loss}")
 
 
+    def get_matches(self,ypred,y):
+        return [int(i) == int(j) for i, j in zip(ypred, y)] # [ torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs,batch_y)]
+
     def predict(self, X, y, batch_size):
         """
         Calculates the accuracy of the model on a test dataset.
@@ -187,12 +190,15 @@ class conv_net(nn.Module):
                 #loss = loss_function(outputs,y)
                 outputs = self(batch_X)
 
-                matches = [ torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs,batch_y)]
+                #print([[i,j] for i,j in zip(outputs,batch_y)])
+
+                matches = self.get_matches(outputs,batch_y)
                 acc += matches.count(True)
 
                 #if predicted_class == real_class:
                     #correct += 1
                 #total += 1
+
             acc /= len(X)
 
         print(f"Accuracy: {round(acc,3)}")
@@ -213,14 +219,19 @@ class conv_net(nn.Module):
         if train:
             self.zero_grad()
         outputs = self(X)
+        #print(outputs[:10])
+        #print(y[:10])
+
         loss = loss_function(outputs, y)
+        #print(loss)
 
         if train:
             loss.backward()
             optimizer.step()
 
         if report:
-            matches = [torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs, y)]
+            matches = self.get_matches(outputs,y)
+            #print(matches)
             acc = matches.count(True)/len(matches)
             return acc, loss
         else:
@@ -305,7 +316,7 @@ class conv_net(nn.Module):
                 losses.append(val_loss)
 
                 # Print accuracies to stdout and log them into the file.
-                print(f"acc: {round(float(acc), 2)}, loss: {round(float(loss), 8)}, val_acc: {round(float(val_acc), 2)}, val_loss: {round(float(val_loss), 8)}")
+                print(f"acc: {round(float(acc), 4)}, loss: {round(float(loss), 8)}, val_acc: {round(float(val_acc), 4)}, val_loss: {round(float(val_loss), 8)}")
                 f.write(
                     f"{file_name},{round(time.time(), 3)},{float(acc)},{float(loss)},{float(val_acc)},{float(val_loss)}\n")
 

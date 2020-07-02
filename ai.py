@@ -67,7 +67,7 @@ class conv_net(nn.Module):
         self.convolutionals = nn.ModuleList(convolutional_layers)
 
         # mock feature for getting the number of output features of the c.l.
-        x = torch.randn(input_rows,input_cols).view(-1,1,input_rows, input_cols)
+        x = torch.randn(3,input_rows,input_cols).view(-1,3,input_rows, input_cols)
 
 
         self._to_linear = None
@@ -151,7 +151,7 @@ class conv_net(nn.Module):
             for i in tqdm(random_idxs):
 
                 # get the batches
-                batch_X = X[i:i+batch_size].view(-1,1,self.input_rows, self.input_cols).to(self.device)
+                batch_X = X[i:i+batch_size].view(-1,3,self.input_rows, self.input_cols).to(self.device)
                 batch_y = y[i:i+batch_size].to(self.device)
 
                 self.zero_grad()
@@ -179,7 +179,7 @@ class conv_net(nn.Module):
         acc = 0
         with torch.no_grad():
             for i in tqdm(range(0,len(X),batch_size)):
-                batch_X = X[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
+                batch_X = X[i:i+batch_size].view(-1,3,self.input_rows,self.input_cols).to(self.device)
                 batch_y = y[i:i+batch_size].to(self.device)
                 #real_class = torch.argmax(test_y[i])
                 #net_out = net(test_X[i].view(-1,1,N_FEATURES).to(device))[0]
@@ -243,7 +243,7 @@ class conv_net(nn.Module):
 
         # grant no learning
         with torch.no_grad():
-            acc, loss = self.fwd_pass(X.view(-1,1,self.input_rows,self.input_cols).to(self.device),y.to(self.device), optimizer, loss_function)
+            acc, loss = self.fwd_pass(X.view(-1,3,self.input_rows,self.input_cols).to(self.device),y.to(self.device), optimizer, loss_function)
         return acc, loss
 
 
@@ -283,9 +283,9 @@ class conv_net(nn.Module):
         with open(file_name,"a") as f:
             for epoch in range(epochs):
                 for i in tqdm(range(0,len(X_train),batch_size)):
+      # get our batches
+                    batch_X = X_train[i:i+batch_size].view(-1,3,self.input_rows,self.input_cols).to(self.device)
 
-                    # get our batches
-                    batch_X = X_train[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
                     batch_y = y_train[i:i+batch_size].to(self.device)
 
                     # forward.

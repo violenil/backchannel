@@ -23,21 +23,21 @@ class dataset(object):
 
         print(f"#positive samples: {len(positive)}, #negative samples: {len(negative)} ")
 
-        self.nmfcc = positive[0].shape[0]
-        self.nframes = positive[0].shape[1]
+        self.nmfcc = positive[0].shape[1]
+        self.nframes = positive[0].shape[2]
 
         training_data = []
         for i in range(positive.shape[0]):
-            training_data.append([positive[i, :, :], np.eye(2)[0]])
+            training_data.append([positive[i, :, :, :], np.eye(2)[0]])
 
         for i in range(negative.shape[0]):
-            training_data.append([negative[i, :, :], np.eye(2)[1]])
+            training_data.append([negative[i, :, :, :], np.eye(2)[1]])
 
         # shuffle the data!
         random.shuffle(training_data)
 
         # move the data into tensors.
-        X = torch.Tensor([i[0] for i in training_data]).view(-1, self.nmfcc, self.nframes)
+        X = torch.Tensor([i[0] for i in training_data]).view(-1, 3, self.nmfcc, self.nframes)
 
         if max == None:
             self.max = torch.max(X)

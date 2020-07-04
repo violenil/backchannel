@@ -282,7 +282,13 @@ class conv_net(nn.Module):
         # open file to log the accuracies.
         with open(file_name,"a") as f:
             for epoch in range(epochs):
-                for i in tqdm(range(0,len(X_train),batch_size)):
+
+                # set how the batches are gonna be forwaded.
+                random_idxs = list(range(0, len(X_train), batch_size))
+
+                random.shuffle(random_idxs)
+
+                for i in tqdm(random_idxs):
 
                     # get our batches
                     batch_X = X_train[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)

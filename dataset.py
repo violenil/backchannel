@@ -50,6 +50,8 @@ class dataset(object):
 
         self.nmfcc = positive[0].shape[1]
         self.nframes = positive[0].shape[2]
+        self.no_of_speakers = len(allSpeakers)
+        self.speaker_to_ix = speaker_to_ix
 
         # move the data into tensors.
 

@@ -51,6 +51,7 @@ class conv_net(nn.Module):
         #Create embeddings for listeners
         embed_dim = 5
         self.listener_embedding = nn.Embedding(no_of_listeners, embed_dim)
+        self.embedding_fc = nn.Linear(embed_dim, embed_dim)
 
         # read the CNN configuraion file
         with open(setup) as f:
@@ -94,6 +95,7 @@ class conv_net(nn.Module):
                 fcs.append ( nn.Linear(input, output) )
 
         self.linears = nn.ModuleList(fcs)
+        self.final_linear = nn.Linear(output+embed_dim, 2)
 
         # make this available in whatever the device is
         self.to(self.device)
@@ -115,10 +117,11 @@ class conv_net(nn.Module):
         return x
 
 
-    def forward(self, x):
+    def forward(self, x, embed):
         """
         feeds forward x through the CNN
         :param x: input vector
+        :param embed: embedding vector
         :return: probability of backchannel and frontchannel.
         """
         x = self.convs(x)
@@ -127,14 +130,20 @@ class conv_net(nn.Module):
 
         for layer in self.linears[:-1] :
             x = F.relu(layer(x))
+   
+        x = self.linears[-1](x)
 
-        x = self.linears[-1] (x)
+        e = self.listener_embedding(embed)
+        e = F.relu(self.embedding_fc(e))
+        
+        concat = torch.cat([x,e], dim=0)
+        u = self.final_linear(concat)
 
-        return F.softmax(x, dim=1)
+        return F.softmax(u, dim=1)
 
 
 
-    def fit (self, X, y, batch_size, epochs, loss_function, lr):
+    def fit (self, dataset, batch_size, epochs, loss_function, lr):
         """
         Trains the CNN.
         :param X: training samples
@@ -149,19 +158,21 @@ class conv_net(nn.Module):
         for epoch in range(epochs):
 
             # set how the batches are gonna be forwaded.
-            random_idxs = list(range(0, len(X), batch_size))
+            random_idxs = list(range(0, len(dataset.X), batch_size))
 
             random.shuffle(random_idxs)
             for i in tqdm(random_idxs):
 
                 # get the batches
-                batch_X = X[i:i+batch_size].view(-1,3,self.input_rows, self.input_cols).to(self.device)
-                batch_y = y[i:i+batch_size].to(self.device)
+                batch_X = dataset.X[i:i+batch_size].view(-1,3,self.input_rows, self.input_cols).to(self.device)
+                batch_y = dataset.y[i:i+batch_size].to(self.device)
+                batch_embed = dataset.speaker_idx[i:i+batch_size].to(self.device)
 
                 self.zero_grad()
 
                 # forward
-                outputs = self(batch_X)
+                outputs = self(batch_X, batch_embed)
+                
 
                 loss = loss_function(outputs, batch_y)
 
@@ -171,7 +182,7 @@ class conv_net(nn.Module):
             print(f"Epoch: {epoch}. Loss: {loss}")
 
 
-    def predict(self, X, y, batch_size):
+    def predict(self, dataset, batch_size):
         """
         Calculates the accuracy of the model on a test dataset.
         :param X: test samples
@@ -182,14 +193,16 @@ class conv_net(nn.Module):
         total = 0
         acc = 0
         with torch.no_grad():
-            for i in tqdm(range(0,len(X),batch_size)):
-                batch_X = X[i:i+batch_size].view(-1,3,self.input_rows,self.input_cols).to(self.device)
-                batch_y = y[i:i+batch_size].to(self.device)
+            for i in tqdm(range(0,len(dataset.X),batch_size)):
+                batch_X = dataset.X[i:i+batch_size].view(-1,3,self.input_rows,self.input_cols).to(self.device)
+                batch_y = dataset.y[i:i+batch_size].to(self.device)
+                batch_embed = dataset.speaker_idx[i:i+batch_size].to(self.device)
+
                 #real_class = torch.argmax(test_y[i])
                 #net_out = net(test_X[i].view(-1,1,N_FEATURES).to(device))[0]
                 #predicted_class = torch.argmax(net_out)
                 #loss = loss_function(outputs,y)
-                outputs = self(batch_X)
+                outputs = self(batch_X, batch_embed)
 
                 matches = [ torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs,batch_y)]
                 acc += matches.count(True)

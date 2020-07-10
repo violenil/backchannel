@@ -77,7 +77,7 @@ class dataset(object):
         for i in range(negative.shape[0]):
             speaker_ix = speaker_to_ix[n_speaker_id[i]]
             training_data.append([negative[i, :, :, :], np.eye(2)[1], speaker_ix])
-
+        print(training_data[0][2])
         # shuffle the data!
         X = X[permutations]
 

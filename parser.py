@@ -36,9 +36,13 @@ class parser(object):
 
         self.train_parser.add_argument('-s', metavar=('backchannel_file','frontchannel_file'), type=str,nargs=2,
                             help='Samples used for training the CNN. Specify both front and backchannel files.',required=True)
+        self.train_parser.add_argument('-ss', metavar=('backchannel_speakerID', 'frontchannel_speakerID'), type=str, nargs=2,
+                            help='Corresponding speakerID for training the CNN. Specify these for both front and backchannel files.', required=True)
         #
         self.train_parser.add_argument('-v', metavar=('backchannel_file','frontchannel_file'), type=str,nargs=2,
                                  help='Validation samples. Specify both front and backchannel files.', required=True)
+        self.train_parser.add_argument('-vv', metavar=('backchannel_speakerID','fronchannel_speakerID'), type=str,nargs=2,
+                                help='Corresponding speakerID for validation samples. Specify these for both fron and backchannel files.', required=True)
 
         self.train_parser.add_argument('-e', metavar='epochs', type=int, default=EPOCHS,help='Configures the #epochs')
 

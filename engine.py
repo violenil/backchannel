@@ -10,10 +10,10 @@ def train(args):
     :param args:
     """
     # read training samples from disk, and prepare the dataset (i.e., shuffle, scaling, and moving the data to tensors.)
-    train_dataset = dataset.dataset(args ['s'][0],args ['s'][1])
+    train_dataset = dataset.dataset(args['s'][0], args['s'][1], args['ss'][0], args['ss'][1])
 
     # same for the validation data. The data is scaled w.r.t. the values of the training data.
-    val_dataset = dataset.dataset(args['v'][0],args['v'][1],train_dataset.max,train_dataset.min)
+    val_dataset = dataset.dataset(args['v'][0], args['v'][1], args['vv'][0], args['vv'][1], train_dataset.max,train_dataset.min)
 
     # set up a convolutional neural network.
     net = ai.conv_net(args['C'],train_dataset.nmfcc,train_dataset.nframes,train_dataset.max,train_dataset.min)

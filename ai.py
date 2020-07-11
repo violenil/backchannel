@@ -301,7 +301,7 @@ class conv_net(nn.Module):
             for epoch in range(epochs):
 
                 # set how the batches are gonna be forwaded.
-                random_idxs = list(range(0, len(X_train), batch_size))
+                random_idxs = list(range(0, len(train_dataset.X), batch_size))
 
                 random.shuffle(random_idxs)
 

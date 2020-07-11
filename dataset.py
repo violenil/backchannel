@@ -56,18 +56,18 @@ class dataset(object):
         # move the data into tensors.
 
         # Positive samples
-        Xp = torch.Tensor(positive)
+        #Xp = torch.Tensor(positive)
 
         # negative samples
-        Xn = torch.Tensor(negative)
+        #Xn = torch.Tensor(negative)
 
         # just concatenate
-        X = torch.cat((Xp,Xn),0)
+        #X = torch.cat((Xp,Xn),0)
 
-        X = X.view(-1, 3, self.nmfcc, self.nframes)
+        #X = X.view(-1, 3, self.nmfcc, self.nframes)
 
         # get the permumations to shuffle X and y.
-        permutations = torch.randperm(X.shape[0])
+        #permutations = torch.randperm(X.shape[0])
 
         training_data = []
         for i in range(positive.shape[0]):
@@ -78,20 +78,23 @@ class dataset(object):
             speaker_ix = speaker_to_ix[n_speaker_id[i]]
             training_data.append([negative[i, :, :, :], np.eye(2)[1], speaker_ix])
         print(training_data[0][2])
+        
         # shuffle the data!
-        X = X[permutations]
+        #X = X[permutations]
+        random.shuffle(training_data)
 
-        print(X.shape)
+        #print(X.shape)
 
         # create the y vector.
-        y = torch.zeros((positive.shape[0]+negative.shape[0],2))
-        y[:positive.shape[0], 0] = 1
-        y[positive.shape[0]:, 1] = 1
+        #y = torch.zeros((positive.shape[0]+negative.shape[0],2))
+        #y[:positive.shape[0], 0] = 1
+        #y[positive.shape[0]:, 1] = 1
 
         # shuffle y as well ( in the same fashion as X )
-        self.y = y [ permutations ]
+        #self.y = y [ permutations ]
 
-        print(self.y.shape)
+        #print(self.y.shape)
+        X = torch.Tensor([i[0] for i in training_data]).view(-1, 3, self.nmfcc, self.nframes)
 
         if max == None:
             self.max = torch.max(X)

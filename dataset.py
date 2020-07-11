@@ -29,7 +29,7 @@ class dataset(object):
 
         #adding speakerID to data
         allSpeakers = []
-        with open("../data/annotation/speaker_annotation.txt", 'r') as f:
+        with open("../../data/annotation/speaker_annotation.txt", 'r') as f:
             f.readline() # skip header
             s = f.readlines()
             for l in s:
@@ -108,7 +108,7 @@ class dataset(object):
 
         self.y = torch.Tensor([i[1] for i in training_data])  # i[1] -> one hot encoding vector
         
-        self.speaker_idx = torch.Tensor([i[2] for i in training_data]) # i[2] -> speaker indexes for samples
+        self.speaker_idx = torch.Tensor([i[2] for i in training_data]).long() # i[2] -> speaker indexes for samples
 
 if __name__ == "__main__":
     pos_sample = "../test/bc/data.3dmfcc.npy"

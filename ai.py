@@ -121,7 +121,7 @@ class conv_net(nn.Module):
         """
         feeds forward x through the CNN
         :param x: input vector
-        :param embed: embedding vector
+        :param embed: embedding vector (must be Long not Float)
         :return: probability of backchannel and frontchannel.
         """
         x = self.convs(x)
@@ -136,7 +136,7 @@ class conv_net(nn.Module):
         e = self.listener_embedding(embed)
         e = F.relu(self.embedding_fc(e))
         
-        concat = torch.cat([x,e], dim=0)
+        concat = torch.cat([x,e], dim=1)
         u = self.final_linear(concat)
 
         return F.softmax(u, dim=1)
@@ -216,7 +216,7 @@ class conv_net(nn.Module):
 
 
 
-    def fwd_pass( self, X, y, optimizer, loss_function, train=False, report=True):
+    def fwd_pass( self, X, emb, y, optimizer, loss_function, train=False, report=True):
         """
         forwards the data, and performs backpropagation and optimiztion when `train` flag is True.
         Also reports the accuracy and loss.
@@ -229,7 +229,7 @@ class conv_net(nn.Module):
         """
         if train:
             self.zero_grad()
-        outputs = self(X)
+        outputs = self(X, emb)
         loss = loss_function(outputs, y)
 
         if train:
@@ -244,7 +244,7 @@ class conv_net(nn.Module):
             return None,None
 
 
-    def predict_random_chunk(self, X, y , optimizer, loss_function, size=32):
+    def predict_random_chunk(self, dataset , optimizer, loss_function, size=32):
         """
         Get the accuracy and lost a random chunk of data.
         :param X: samples to be predicted
@@ -255,12 +255,12 @@ class conv_net(nn.Module):
         :return: accuracy and loss.
         """
         # get a random chunk from the test data
-        random_start = np.random.randint(len(X)-size)
-        X,y = X[random_start:random_start+size], y [random_start:random_start+size]
+        random_start = np.random.randint(len(dataset.X)-size)
+        X,y,emb = dataset.X[random_start:random_start+size], dataset.y[random_start:random_start+size], dataset.speaker_idx[random_start:random_start+size]
 
         # grant no learning
         with torch.no_grad():
-            acc, loss = self.fwd_pass(X.view(-1,3,self.input_rows,self.input_cols).to(self.device),y.to(self.device), optimizer, loss_function)
+            acc, loss = self.fwd_pass(X.view(-1,3,self.input_rows,self.input_cols).to(self.device), emb.to(self.device), y.to(self.device), optimizer, loss_function)
         return acc, loss
 
 
@@ -274,7 +274,7 @@ class conv_net(nn.Module):
         return True
 
 
-    def reported_fit(self, X_train, y_train, X_val, y_val, loss_function, lr, batch_size, epochs,file_name):
+    def reported_fit(self, train_dataset, val_dataset, loss_function, lr, batch_size, epochs,file_name):
         """
         Trains the CNN and reports accuracy and loss on both validation and training data at each epoch. The reported data is also
         saved in a csv file.
@@ -307,23 +307,23 @@ class conv_net(nn.Module):
 
                 for i in tqdm(random_idxs):
                     # get our batches
-                    batch_X = X_train[i:i+batch_size].view(-1,3,self.input_rows,self.input_cols).to(self.device)
-
-                    batch_y = y_train[i:i+batch_size].to(self.device)
+                    batch_X = train_dataset.X[i:i+batch_size].view(-1,3,self.input_rows,self.input_cols).to(self.device)
+                    batch_y = train_dataset.y[i:i+batch_size].to(self.device)
+                    batch_embed = train_dataset.speaker_idx[i:i+batch_size].to(self.device)
 
                     # forward.
-                    self.fwd_pass(batch_X, batch_y, optimizer, loss_function, train=True, report=False)
+                    self.fwd_pass(batch_X, batch_embed, batch_y, optimizer, loss_function, train=True, report=False)
 
                 # get the number of random features to test. In the rare case where the training size is smaller than the validation
                 # get the whole size of training.
-                test_size = X_val.shape[0] - 1 if X_val.shape[0] - 1 < X_train.shape[0] else X_train.shape[0] - 1
+                test_size = val_dataset.X.shape[0] - 1 if val_dataset.X.shape[0] - 1 < train_dataset.X.shape[0] else train_dataset.X.shape[0] - 1
 
                 # Get the accuracies of a random chunk of the training data.
-                acc, loss = self.predict_random_chunk(X_train, y_train, optimizer, loss_function, size=test_size)
+                acc, loss = self.predict_random_chunk(train_dataset, optimizer, loss_function, size=test_size)
 
 
                 # Get the accuracies of a random chunk of the test data.
-                val_acc, val_loss = self.predict_random_chunk(X_val, y_val, optimizer, loss_function, size=test_size)
+                val_acc, val_loss = self.predict_random_chunk(val_dataset, optimizer, loss_function, size=test_size)
 
                 losses.append(val_loss)
 

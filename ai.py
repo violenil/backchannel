@@ -14,7 +14,7 @@ CNN for backchanneling.
 """
 class conv_net(nn.Module):
 
-    def __init__(self, setup, input_rows, input_cols, no_of_listeners, max, min):
+    def __init__(self, setup, input_rows, input_cols, no_of_listeners, no_of_speakers, max, min):
         """
         Initializes the CNN.
         :param setup: JSON describing the configuration of the CNN.
@@ -52,6 +52,9 @@ class conv_net(nn.Module):
         embed_dim = 5
         self.listener_embedding = nn.Embedding(no_of_listeners, embed_dim)
         self.embedding_fc = nn.Linear(embed_dim, embed_dim)
+
+        #Create embeddings for speakers
+        #TODO
 
         # read the CNN configuraion file
         with open(setup) as f:

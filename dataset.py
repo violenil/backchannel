@@ -5,12 +5,13 @@ import numpy as np
 import torch
 
 
+
 """
 Holds a dataset.
 """
 class dataset(object):
 
-    def __init__(self,positive_samples_path,negative_samples_path,p_chan_path,n_chan_path,max = None, min = None):
+    def __init__(self, positive_samples_path, negative_samples_path, speakers_path, listeners_path, max = None, min = None):
         """
         Reads the backchannel (positive samples) and frontchannel (negative samples) mfcc features from disk
         and prepares them for being used in the CNN.
@@ -21,83 +22,53 @@ class dataset(object):
         """
         positive = np.load(positive_samples_path)
         negative = np.load(negative_samples_path)
+        speakers = np.load(speakers_path)
+        listeners = np.load(listeners_path)
 
 
 
         print(f"#positive samples: {len(positive)}, #negative samples: {len(negative)} ")
 
-
-        #adding speakerID to data
-        allSpeakers = []
-        with open("../../data/annotation/speaker_annotation.txt", 'r') as f:
-            f.readline() # skip header
-            s = f.readlines()
-            for l in s:
-                x = l.split('\t')[1] # keep only speakerID, since [0] is conv_chan
-                if x not in allSpeakers: # only keeping unique speakerIDs
-                    allSpeakers.append(x)
-        allSpeakers = [x.strip('\n') for x in allSpeakers]
-        speaker_to_ix = {speaker: i for i, speaker in enumerate(allSpeakers)} #This is important, creates mapping from speakerID to index
-
-        # load lists of corresponding speakerIDs for each sample
-        with open(p_chan_path, 'r') as p:
-            p_speaker_id = p.readlines()
-        with open(n_chan_path, 'r') as n:
-            n_speaker_id = n.readlines()
-
-        p_speaker_id = [x.strip('\n') for x in p_speaker_id]
-        n_speaker_id = [x.strip('\n') for x in n_speaker_id]
-
         self.nmfcc = positive[0].shape[1]
         self.nframes = positive[0].shape[2]
-        self.no_of_speakers = len(p_speaker_id)
-        self.no_of_listeners = len(n_speaker_id)
-        self.bc_speaker_id = p_speaker_id
-        self.fc_speaker_id = n_speaker_id
-        self.speaker_to_ix = speaker_to_ix
 
         # move the data into tensors.
 
         # Positive samples
-        #Xp = torch.Tensor(positive)
+        Xp = torch.Tensor(positive)
 
         # negative samples
-        #Xn = torch.Tensor(negative)
+        Xn = torch.Tensor(negative)
+
+        # speaker indices
+        self.sp = torch.Tensor(speakers)
+
+        # listener indices
+        self.ls = torch.Tensor(listeners)
 
         # just concatenate
-        #X = torch.cat((Xp,Xn),0)
+        X = torch.cat((Xp,Xn),0)
 
-        #X = X.view(-1, 3, self.nmfcc, self.nframes)
+        X = X.view(-1, 3, self.nmfcc, self.nframes)
 
         # get the permumations to shuffle X and y.
-        #permutations = torch.randperm(X.shape[0])
+        permutations = torch.randperm(X.shape[0])
 
-        training_data = []
-        for i in range(positive.shape[0]):
-            speaker_ix = speaker_to_ix[p_speaker_id[i]] #retrieves index from dictionary
-            training_data.append([positive[i, :, :, :], np.eye(2)[0], speaker_ix])
-
-        for i in range(negative.shape[0]):
-            speaker_ix = speaker_to_ix[n_speaker_id[i]]
-            training_data.append([negative[i, :, :, :], np.eye(2)[1], speaker_ix])
-        print(training_data[0][2])
-        
         # shuffle the data!
-        #X = X[permutations]
-        random.shuffle(training_data)
+        X = X[permutations]
+        self.sp = self.sp [ permutations ].long()
+        self.ls = self.ls [ permutations ].long()
 
-        #print(X.shape)
 
         # create the y vector.
-        #y = torch.zeros((positive.shape[0]+negative.shape[0],2))
-        #y[:positive.shape[0], 0] = 1
-        #y[positive.shape[0]:, 1] = 1
+        y = torch.zeros((positive.shape[0]+negative.shape[0],2))
+        y[:positive.shape[0], 0] = 1
+        y[positive.shape[0]:, 1] = 1
 
         # shuffle y as well ( in the same fashion as X )
-        #self.y = y [ permutations ]
+        self.y = y [ permutations ]
 
-        #print(self.y.shape)
-        X = torch.Tensor([i[0] for i in training_data]).view(-1, 3, self.nmfcc, self.nframes)
+        print(self.y.shape)
 
         if max == None:
             self.max = torch.max(X)
@@ -111,14 +82,3 @@ class dataset(object):
 
 
         self.X = (X - self.min) / (self.max - self.min) * 2 - 1  # scale between -1 and 1
-
-        self.y = torch.Tensor([i[1] for i in training_data])  # i[1] -> one hot encoding vector
-        
-        self.speaker_idx = torch.Tensor([i[2] for i in training_data]).long() # i[2] -> speaker indexes for samples
-
-if __name__ == "__main__":
-    pos_sample = "../test/bc/data.3dmfcc.npy"
-    neg_sample = "../test/fc/data.3dmfcc.npy"
-    pos_speak = "../test/bc/speakerID"
-    neg_speak = "../test/fc/speakerID"
-    data = dataset(pos_sample, neg_sample, pos_speak, neg_speak)

@@ -36,13 +36,17 @@ class parser(object):
 
         self.train_parser.add_argument('-s', metavar=('backchannel_file','frontchannel_file'), type=str,nargs=2,
                             help='Samples used for training the CNN. Specify both front and backchannel files.',required=True)
-        self.train_parser.add_argument('-ss', metavar=('listener_indices', 'speaker_indices'), type=str, nargs=2,
-                            help='Corresponding speaker/listener indices for training the CNN. Specify these for both front and backchannel files.', required=True)
+        self.train_parser.add_argument('-sp', metavar=('listener_indices', 'speaker_indices'), type=str, nargs=2,
+                            help='Corresponding speaker/listener indices for positive samples.', required=True)
+        self.train_parser.add_argument('-sn', metavar=('listener_indices', 'speaker_indices'), type=str, nargs=2,
+                            help='Corresponding speaker/listener indices for negative samples.', required=True)
         #
         self.train_parser.add_argument('-v', metavar=('backchannel_file','frontchannel_file'), type=str,nargs=2,
                                  help='Validation samples. Specify both front and backchannel indices path.', required=True)
-        self.train_parser.add_argument('-vv', metavar=('listener_indices','speaker_indices'), type=str,nargs=2,
-                                help='Corresponding speaker/listener indices for validation samples. Specify these for both fron and backchannel files.', required=True)
+        self.train_parser.add_argument('-vp', metavar=('listener_indices','speaker_indices'), type=str,nargs=2,
+                                help='Corresponding speaker/listener indices for positive validation samples.', required=True)
+        self.train_parser.add_argument('-vn', metavar=('listener_indices','speaker_indices'), type=str,nargs=2,
+                                help='Corresponding speaker/listener indices for negative validation samples.', required=True)
 
         self.train_parser.add_argument('-e', metavar='epochs', type=int, default=EPOCHS,help='Configures the #epochs')
 

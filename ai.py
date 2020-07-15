@@ -169,7 +169,7 @@ class conv_net(nn.Module):
                 # get the batches
                 batch_X = dataset.X[i:i+batch_size].view(-1,3,self.input_rows, self.input_cols).to(self.device)
                 batch_y = dataset.y[i:i+batch_size].to(self.device)
-                batch_embed = dataset.speaker_idx[i:i+batch_size].to(self.device)
+                batch_embed = dataset.ls[i:i+batch_size].to(self.device)
 
                 self.zero_grad()
 
@@ -199,7 +199,7 @@ class conv_net(nn.Module):
             for i in tqdm(range(0,len(dataset.X),batch_size)):
                 batch_X = dataset.X[i:i+batch_size].view(-1,3,self.input_rows,self.input_cols).to(self.device)
                 batch_y = dataset.y[i:i+batch_size].to(self.device)
-                batch_embed = dataset.speaker_idx[i:i+batch_size].to(self.device)
+                batch_embed = dataset.ls[i:i+batch_size].to(self.device)
 
                 #real_class = torch.argmax(test_y[i])
                 #net_out = net(test_X[i].view(-1,1,N_FEATURES).to(device))[0]
@@ -259,7 +259,7 @@ class conv_net(nn.Module):
         """
         # get a random chunk from the test data
         random_start = np.random.randint(len(dataset.X)-size)
-        X,y,emb = dataset.X[random_start:random_start+size], dataset.y[random_start:random_start+size], dataset.speaker_idx[random_start:random_start+size]
+        X,y,emb = dataset.X[random_start:random_start+size], dataset.y[random_start:random_start+size], dataset.ls[random_start:random_start+size]
 
         # grant no learning
         with torch.no_grad():
@@ -312,7 +312,7 @@ class conv_net(nn.Module):
                     # get our batches
                     batch_X = train_dataset.X[i:i+batch_size].view(-1,3,self.input_rows,self.input_cols).to(self.device)
                     batch_y = train_dataset.y[i:i+batch_size].to(self.device)
-                    batch_embed = train_dataset.speaker_idx[i:i+batch_size].to(self.device)
+                    batch_embed = train_dataset.ls[i:i+batch_size].to(self.device)
 
                     # forward.
                     self.fwd_pass(batch_X, batch_embed, batch_y, optimizer, loss_function, train=True, report=False)

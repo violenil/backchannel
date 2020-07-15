@@ -11,7 +11,7 @@ Holds a dataset.
 """
 class dataset(object):
 
-    def __init__(self, positive_samples_path, negative_samples_path, speakers_path, listeners_path, max = None, min = None):
+    def __init__(self, positive_samples_path, negative_samples_path, listeners_path, speakers_path, max = None, min = None):
         """
         Reads the backchannel (positive samples) and frontchannel (negative samples) mfcc features from disk
         and prepares them for being used in the CNN.
@@ -31,6 +31,7 @@ class dataset(object):
 
         self.nmfcc = positive[0].shape[1]
         self.nframes = positive[0].shape[2]
+        self.no_of_total_speakers = 539 #from checking unique speakerID in dataset/annotation/speaker_annotation.txt
 
         # move the data into tensors.
 

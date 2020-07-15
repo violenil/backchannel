@@ -16,7 +16,7 @@ def train(args):
     val_dataset = dataset.dataset(args['v'][0], args['v'][1], args['vv'][0], args['vv'][1], train_dataset.max,train_dataset.min)
 
     # set up a convolutional neural network.
-    net = ai.conv_net(args['C'],train_dataset.nmfcc,train_dataset.nframes,train_dataset.no_of_listeners,train_dataset.no_of_speakers,train_dataset.max,train_dataset.min)
+    net = ai.conv_net(args['C'],train_dataset.nmfcc,train_dataset.nframes,train_dataset.no_of_total_speakers,train_dataset.max,train_dataset.min)
 
     # optional flag with optional parameter.
     if args ['report'] != '':

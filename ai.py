@@ -48,13 +48,12 @@ class conv_net(nn.Module):
         # number of frames
         self.input_cols = input_cols
         
-        #Create embeddings for listeners
+        #Create embeddings for listeners & speakers
         embed_dim = 5
         self.listener_embedding = nn.Embedding(no_of_speakers, embed_dim)
-        self.embedding_fc = nn.Linear(embed_dim, embed_dim)
-
-        #Create embeddings for speakers
-        #TODO
+        self.speaker_embedding = nn.Embedding(no_of_speakers, embed_dim)
+        self.list_embedding_fc = nn.Linear(embed_dim, embed_dim)
+        self.speak_embedding_fc = nn.Linear(embed_dim, embed_dim)
 
         # read the CNN configuraion file
         with open(setup) as f:
@@ -98,7 +97,7 @@ class conv_net(nn.Module):
                 fcs.append ( nn.Linear(input, output) )
 
         self.linears = nn.ModuleList(fcs)
-        self.final_linear = nn.Linear(output+embed_dim, 2)
+        self.final_linear = nn.Linear(output+embed_dim+embed_dim, 2)
 
         # make this available in whatever the device is
         self.to(self.device)
@@ -120,7 +119,7 @@ class conv_net(nn.Module):
         return x
 
 
-    def forward(self, x, embed):
+    def forward(self, x, list_embed, speak_embed):
         """
         feeds forward x through the CNN
         :param x: input vector
@@ -131,15 +130,20 @@ class conv_net(nn.Module):
 
         x = x.view(-1, self._to_linear)
 
-        for layer in self.linears[:-1] :
+        for layer in self.linears[:-1]:
             x = F.relu(layer(x))
    
         x = self.linears[-1](x)
 
-        e = self.listener_embedding(embed)
-        e = F.relu(self.embedding_fc(e))
+        #listener
+        e1 = self.listener_embedding(list_embed)
+        e1 = F.relu(self.list_embedding_fc(e1))
+
+        #speaker
+        e2 = self.speaker_embedding(speak_embed)
+        e2 = F.relu(self.speak_embedding_fc(e2))
         
-        concat = torch.cat([x,e], dim=1)
+        concat = torch.cat([x,e1,e2], dim=1)
         u = self.final_linear(concat)
 
         return F.softmax(u, dim=1)
@@ -199,13 +203,14 @@ class conv_net(nn.Module):
             for i in tqdm(range(0,len(dataset.X),batch_size)):
                 batch_X = dataset.X[i:i+batch_size].view(-1,3,self.input_rows,self.input_cols).to(self.device)
                 batch_y = dataset.y[i:i+batch_size].to(self.device)
-                batch_embed = dataset.ls[i:i+batch_size].to(self.device)
+                batch_ls_embed = dataset.ls[i:i+batch_size].to(self.device)
+                batch_sp_embed = dataset.sp[i:i+batch_size].to(self.device)
 
                 #real_class = torch.argmax(test_y[i])
                 #net_out = net(test_X[i].view(-1,1,N_FEATURES).to(device))[0]
                 #predicted_class = torch.argmax(net_out)
                 #loss = loss_function(outputs,y)
-                outputs = self(batch_X, batch_embed)
+                outputs = self(batch_X, batch_ls_embed, batch_sp_embed)
 
                 matches = [ torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs,batch_y)]
                 acc += matches.count(True)
@@ -219,7 +224,7 @@ class conv_net(nn.Module):
 
 
 
-    def fwd_pass( self, X, emb, y, optimizer, loss_function, train=False, report=True):
+    def fwd_pass( self, X, ls_emb, sp_emb, y, optimizer, loss_function, train=False, report=True):
         """
         forwards the data, and performs backpropagation and optimiztion when `train` flag is True.
         Also reports the accuracy and loss.
@@ -232,7 +237,7 @@ class conv_net(nn.Module):
         """
         if train:
             self.zero_grad()
-        outputs = self(X, emb)
+        outputs = self(X, ls_emb, sp_emb)
         loss = loss_function(outputs, y)
 
         if train:
@@ -259,11 +264,11 @@ class conv_net(nn.Module):
         """
         # get a random chunk from the test data
         random_start = np.random.randint(len(dataset.X)-size)
-        X,y,emb = dataset.X[random_start:random_start+size], dataset.y[random_start:random_start+size], dataset.ls[random_start:random_start+size]
+        X,y,ls_emb,sp_emb = dataset.X[random_start:random_start+size], dataset.y[random_start:random_start+size], dataset.ls[random_start:random_start+size], dataset.sp[random_start:random_start+size]
 
         # grant no learning
         with torch.no_grad():
-            acc, loss = self.fwd_pass(X.view(-1,3,self.input_rows,self.input_cols).to(self.device), emb.to(self.device), y.to(self.device), optimizer, loss_function)
+            acc, loss = self.fwd_pass(X.view(-1,3,self.input_rows,self.input_cols).to(self.device), ls_emb.to(self.device), sp_emb.to(self.device), y.to(self.device), optimizer, loss_function)
         return acc, loss
 
 
@@ -312,10 +317,11 @@ class conv_net(nn.Module):
                     # get our batches
                     batch_X = train_dataset.X[i:i+batch_size].view(-1,3,self.input_rows,self.input_cols).to(self.device)
                     batch_y = train_dataset.y[i:i+batch_size].to(self.device)
-                    batch_embed = train_dataset.ls[i:i+batch_size].to(self.device)
+                    batch_ls_embed = train_dataset.ls[i:i+batch_size].to(self.device)
+                    batch_sp_embed = train_dataset.sp[i:i+batch_size].to(self.device)
 
                     # forward.
-                    self.fwd_pass(batch_X, batch_embed, batch_y, optimizer, loss_function, train=True, report=False)
+                    self.fwd_pass(batch_X, batch_ls_embed, batch_sp_embed, batch_y, optimizer, loss_function, train=True, report=False)
 
                 # get the number of random features to test. In the rare case where the training size is smaller than the validation
                 # get the whole size of training.

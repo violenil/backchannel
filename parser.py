@@ -26,6 +26,10 @@ class parser(object):
 
         self.test_parser.add_argument('-d', metavar=('backchannel_file','frontchannel_file'), type=str,
                                       help='Data to be tested.',nargs=2, required=True)
+        self.test_parser.add_argument('-dp', metavar=('listener_indices', 'speaker_indices'), type=str,
+                                      help='Listener and speaker indices for positive samples.',nargs=2, required=True)
+        self.test_parser.add_argument('-dn', metavar=('listener_indices', 'speaker_indices'), type=str,
+                                      help='Listener and speaker indices for negative samples.',nargs=2, required=True)
 
 
         # define the training parser.

@@ -218,7 +218,7 @@ class conv_net(nn.Module):
                 #if predicted_class == real_class:
                     #correct += 1
                 #total += 1
-            acc /= len(X)
+            acc /= len(dataset.X)
 
         print(f"Accuracy: {round(acc,3)}")
 

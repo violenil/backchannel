@@ -53,8 +53,8 @@ def test (args):
     net = ai.conv_net.load(args['m'])
 
     # load the test dataset from disk.
-    test = dataset.dataset(args ['d'][0] , args ['d'][1], net.max, net.min)
+    test = dataset.dataset(args ['d'][0] , args ['d'][1], args['dp'][0], args['dp'][1], args['dn'][0], args['dn'][1], net.max, net.min)
 
     # predict!
-    net.predict( test.X,test.y, args['b'] )
+    net.predict( test, args['b'] )
 

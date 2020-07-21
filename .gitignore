@@ -8,4 +8,8 @@ Plots/*
 *.csv
 *.cnn
 reports/*
+<<<<<<< HEAD
 *.pdf
+=======
+*.pdf 
+>>>>>>> 68426845806c6265ef2e65678e129452233be1f4

@@ -82,6 +82,12 @@ class conv_net(nn.Module):
         # So that pythorch recognises the layers.
         self.convolutionals = nn.ModuleList(convolutional_layers)
         self.cnn_drop = nn.ModuleList(cnn_drop_outs)
+
+        # Embedding dropouts
+        self.l_embed_drop = nn.Dropout(p=0.5)  #for listener embeddings
+        self.s_embed_drop = nn.Dropout(p=0.5)  #for speaker embeddings
+
+
         # mock feature for getting the number of output features of the c.l.
         x = torch.randn(3,input_rows,input_cols).view(-1,3,input_rows, input_cols)
 
@@ -155,11 +161,11 @@ class conv_net(nn.Module):
 
         #listener
         e1 = self.listener_embedding(list_embed)
-        e1 = F.relu(self.list_embedding_fc(e1))
+        e1 = F.relu(self.l_embed_drop(self.list_embedding_fc(e1)))
 
         #speaker
         e2 = self.speaker_embedding(speak_embed)
-        e2 = F.relu(self.speak_embedding_fc(e2))
+        e2 = F.relu(self.s_embed_drop(self.speak_embedding_fc(e2)))
         
         concat = torch.cat([x,e1,e2], dim=1)
         u = self.final_linear(concat)

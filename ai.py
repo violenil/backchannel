@@ -82,10 +82,6 @@ class conv_net(nn.Module):
         # So that pythorch recognises the layers.
         self.convolutionals = nn.ModuleList(convolutional_layers)
         self.cnn_drop = nn.ModuleList(cnn_drop_outs)
-<<<<<<< HEAD
-=======
-
->>>>>>> 68426845806c6265ef2e65678e129452233be1f4
         # mock feature for getting the number of output features of the c.l.
         x = torch.randn(3,input_rows,input_cols).view(-1,3,input_rows, input_cols)
 
@@ -107,11 +103,8 @@ class conv_net(nn.Module):
                 drop_out = float(properties['drop_out'])
             else:
                 drop_out = 0.0
-<<<<<<< HEAD
-=======
 
             fc_drop_outs.append(nn.Dropout(p=drop_out))
->>>>>>> 68426845806c6265ef2e65678e129452233be1f4
 
             fc_drop_outs.append(nn.Dropout(p=drop_out))
             # a -1 in the number of input neurons refers to the size of the features after the convolutional layers.
@@ -122,10 +115,6 @@ class conv_net(nn.Module):
 
         self.linears = nn.ModuleList(fcs)
         self.fc_drop = nn.ModuleList(fc_drop_outs)
-<<<<<<< HEAD
-
-=======
->>>>>>> 68426845806c6265ef2e65678e129452233be1f4
         self.final_linear = nn.Linear(output+embed_dim, 2)
 
         # make this available in whatever the device is
@@ -161,11 +150,7 @@ class conv_net(nn.Module):
 
         for layer, drop in zip(self.linears[:-1], self.fc_drop[:-1]):
             x = F.relu(drop(layer(x)))
-<<<<<<< HEAD
-
-=======
    
->>>>>>> 68426845806c6265ef2e65678e129452233be1f4
         x = self.fc_drop[-1](self.linears[-1](x))
 
         e = self.listener_embedding(embed)
@@ -335,11 +320,7 @@ class conv_net(nn.Module):
         losses = []
 
         # open file to log the accuracies.
-<<<<<<< HEAD
-        with open(f"reports/{file_name}","a") as f:
-=======
         with open(f"reports/{file_name}", "a") as f:
->>>>>>> 68426845806c6265ef2e65678e129452233be1f4
             for epoch in range(epochs):
 
                 # set how the batches are gonna be forwaded.
@@ -347,10 +328,6 @@ class conv_net(nn.Module):
 
                 random.shuffle(random_idxs)
                 self.train()
-<<<<<<< HEAD
-
-=======
->>>>>>> 68426845806c6265ef2e65678e129452233be1f4
                 for i in tqdm(random_idxs):
                     # get our batches
                     batch_X = train_dataset.X[i:i+batch_size].view(-1,3,self.input_rows,self.input_cols).to(self.device)
@@ -378,15 +355,10 @@ class conv_net(nn.Module):
                 # Print accuracies to stdout and log them into the file.
                 print(
                     f"epoch: {epoch}, acc: {round(float(acc), 6)}, loss: {round(float(loss), 8)}, val_acc: {round(float(val_acc), 6)}, val_loss: {round(float(val_loss), 8)}")
-<<<<<<< HEAD
-                f.write(
-                    f"{file_name},{epoch},{float(acc)},{float(loss)},{float(val_acc)},{float(val_loss)}\n")
-=======
 
                 f.write(
                     f"{file_name},{epoch},{float(acc)},{float(loss)},{float(val_acc)},{float(val_loss)}\n")
 
->>>>>>> 68426845806c6265ef2e65678e129452233be1f4
                 if not self.is_learning(losses,val_loss):
                     print("I'm not learning :(. Try other hyperparameters. Stopping.")
                     return

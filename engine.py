@@ -20,13 +20,6 @@ def train(args):
 
     # optional flag with optional parameter.
     if args ['report'] != '':
-<<<<<<< HEAD
-        try:
-            # fit the data and report the results.
-            net.reported_fit(train_dataset, val_dataset, loss_function, args['lr'], args['b'], args['e'], args['report'])
-        except KeyboardInterrupt:
-            pass
-=======
 
         # fit the data and report the results.
         try:
@@ -36,7 +29,6 @@ def train(args):
         except KeyboardInterrupt:
             pass
 
->>>>>>> 68426845806c6265ef2e65678e129452233be1f4
         # show how the data fitted w.r.t. the training and validation data.
         viewer.create_acc_loss_graph(args['report'],args['report'])
 

@@ -84,6 +84,9 @@ class conv_net(nn.Module):
 
         self.cnn_drop = nn.ModuleList(cnn_drop_outs)
 
+        # Embedding dropouts
+        self.s_embed_drop = nn.Dropout(p=0.5)  #speaker embedding dropout
+
         # mock feature for getting the number of output features of the c.l.
         x = torch.randn(3,input_rows,input_cols).view(-1,3,input_rows, input_cols)
 
@@ -157,8 +160,8 @@ class conv_net(nn.Module):
         x = self.fc_drop[-1](self.linears[-1](x))
 
         e = self.speaker_embedding(embed)
-        e = F.relu(self.embedding_fc(e))
-        
+        e = F.relu(self.s_embed_drop(self.embedding_fc(e)))   #not sure if this is right
+
         concat = torch.cat([x,e], dim=1)
         u = self.final_linear(concat)
 

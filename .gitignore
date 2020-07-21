@@ -4,3 +4,8 @@
 Plots/*
 __pycache__/*
 cnn_configs/*
+Plots/*
+*.csv
+*.cnn
+reports/*
+*.pdf 

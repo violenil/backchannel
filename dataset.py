@@ -11,7 +11,7 @@ Holds a dataset.
 """
 class dataset(object):
 
-    def __init__(self, positive_samples_path, negative_samples_path, p_listeners_path, p_speakers_path, n_listeners_path, n_speakers_path, max = None, min = None):
+    def __init__(self, positive_samples_path, negative_samples_path, p_listeners_path, n_listeners_path, max = None, min = None):
         """
         Reads the backchannel (positive samples) and frontchannel (negative samples) mfcc features from disk
         and prepares them for being used in the CNN.
@@ -22,9 +22,7 @@ class dataset(object):
         """
         positive = np.load(positive_samples_path)
         negative = np.load(negative_samples_path)
-        p_speakers = np.load(p_speakers_path)
         p_listeners = np.load(p_listeners_path)
-        n_speakers = np.load(n_speakers_path)
         n_listeners = np.load(n_listeners_path)
 
 
@@ -43,10 +41,6 @@ class dataset(object):
         # negative samples
         Xn = torch.Tensor(negative)
 
-        # speaker indices
-        pspeak = torch.Tensor(p_speakers)
-        nspeak = torch.Tensor(n_speakers)
-        self.sp = torch.cat((pspeak, nspeak), 0)
 
         # listener indices
         plist = torch.Tensor(p_listeners)
@@ -64,7 +58,6 @@ class dataset(object):
 
         # shuffle the data!
         X = X[permutations]
-        self.sp= self.sp[permutations].long()
         self.ls = self.ls[permutations].long()
 
         # create the y vector.

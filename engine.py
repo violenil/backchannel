@@ -10,10 +10,10 @@ def train(args):
     :param args:
     """
     # read training samples from disk, and prepare the dataset (i.e., shuffle, scaling, and moving the data to tensors.)
-    train_dataset = dataset.dataset(args['s'][0], args['s'][1], args['sp'][0], args['sp'][1], args['sn'][0], args['sn'][1])
+    train_dataset = dataset.dataset(args['s'][0], args['s'][1], args['sp'], args['sn'])
 
     # same for the validation data. The data is scaled w.r.t. the values of the training data.
-    val_dataset = dataset.dataset(args['v'][0], args['v'][1], args['vp'][0], args['vp'][1], args['vn'][0], args['vn'][1], train_dataset.max,train_dataset.min)
+    val_dataset = dataset.dataset(args['v'][0], args['v'][1], args['vp'], args['vn'], train_dataset.max,train_dataset.min)
 
     # set up a convolutional neural network.
     net = ai.conv_net(args['C'],train_dataset.nmfcc,train_dataset.nframes,train_dataset.no_of_total_speakers,train_dataset.max,train_dataset.min)
@@ -22,7 +22,12 @@ def train(args):
     if args ['report'] != '':
 
         # fit the data and report the results.
-        net.reported_fit(train_dataset, val_dataset, loss_function, args['lr'], args['b'], args['e'], args['report'])
+        try:
+            # fit the data and report the results.
+            net.reported_fit(train_dataset, val_dataset, loss_function, args['lr'],
+                             args['b'], args['e'], args['report'])
+        except KeyboardInterrupt:
+            pass
 
         # show how the data fitted w.r.t. the training and validation data.
         viewer.create_acc_loss_graph(args['report'],args['report'])

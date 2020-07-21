@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -63,17 +64,24 @@ class conv_net(nn.Module):
         print(type(config))
 
         convolutional_layers = []
+        cnn_drop_outs = []
 
         # set up convolutional layer(s).
         for cname, properties in config['convolutions'].items():
             in_channels = properties['in_channels']
             out_channels = properties['out_channels']
             kernel_width = properties['kernel_width']
+            if 'drop_out' in properties:
+                drop_out = float(properties['drop_out'])
+            else:
+                drop_out = 0.0
+
+            cnn_drop_outs.append(nn.Dropout(p=drop_out))
             convolutional_layers.append( nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(input_rows,kernel_width)) )
 
         # So that pythorch recognises the layers.
         self.convolutionals = nn.ModuleList(convolutional_layers)
-
+        self.cnn_drop = nn.ModuleList(cnn_drop_outs)
         # mock feature for getting the number of output features of the c.l.
         x = torch.randn(3,input_rows,input_cols).view(-1,3,input_rows, input_cols)
 
@@ -85,12 +93,18 @@ class conv_net(nn.Module):
 
         # fully connected layers
         fcs = []
+        fc_drop_outs = []
 
         # set up the linear layer(s).
         for cname, properties in config['fully_connected'].items():
             input = properties['input']
             output = properties['output']
+            if 'drop_out' in properties:
+                drop_out = float(properties['drop_out'])
+            else:
+                drop_out = 0.0
 
+            fc_drop_outs.append(nn.Dropout(p=drop_out))
             # a -1 in the number of input neurons refers to the size of the features after the convolutional layers.
             if input == -1:
                 fcs.append ( nn.Linear(self._to_linear,output) )
@@ -98,6 +112,8 @@ class conv_net(nn.Module):
                 fcs.append ( nn.Linear(input, output) )
 
         self.linears = nn.ModuleList(fcs)
+        self.fc_drop = nn.ModuleList(fc_drop_outs)
+
         self.final_linear = nn.Linear(output+embed_dim, 2)
 
         # make this available in whatever the device is
@@ -110,8 +126,8 @@ class conv_net(nn.Module):
         :param x: input
         :return: x after the convolution.
         """
-        for layer in self.convolutionals:
-            x = F.max_pool2d(F.relu(layer(x)),(1,1))
+        for layer, drop in zip(self.convolutionals, self.cnn_drop):
+            x = F.max_pool2d(F.relu(drop(layer(x))), (1, 2))
 
         if self._to_linear is None:
             print(x.shape)
@@ -131,10 +147,10 @@ class conv_net(nn.Module):
 
         x = x.view(-1, self._to_linear)
 
-        for layer in self.linears[:-1] :
-            x = F.relu(layer(x))
-   
-        x = self.linears[-1](x)
+        for layer, drop in zip(self.linears[:-1], self.fc_drop[:-1]):
+            x = F.relu(drop(layer(x)))
+
+        x = self.fc_drop[-1](self.linears[-1](x))
 
         e = self.listener_embedding(embed)
         e = F.relu(self.embedding_fc(e))
@@ -156,6 +172,7 @@ class conv_net(nn.Module):
         :param loss_function:
         :param lr: learning rate.
         """
+        self.train()
         optimizer = optim.Adam(self.parameters(), lr=lr)
 
         for epoch in range(epochs):
@@ -192,6 +209,7 @@ class conv_net(nn.Module):
         :param y: one hot encoding labels.
         :param batch_size:
         """
+        self.eval()
         correct = 0
         total = 0
         acc = 0
@@ -292,7 +310,8 @@ class conv_net(nn.Module):
         :param file_name: write the reported accuracies and losses into this file.
         """
 
-
+        if not os.path.exists('reports/'):
+            os.makedirs('reports/')
 
         optimizer = optim.Adam(self.parameters(), lr=lr)
 
@@ -300,13 +319,14 @@ class conv_net(nn.Module):
         losses = []
 
         # open file to log the accuracies.
-        with open(file_name,"a") as f:
+        with open(f"reports/{file_name}","a") as f:
             for epoch in range(epochs):
 
                 # set how the batches are gonna be forwaded.
                 random_idxs = list(range(0, len(train_dataset.X), batch_size))
 
                 random.shuffle(random_idxs)
+                self.train()
 
                 for i in tqdm(random_idxs):
                     # get our batches
@@ -316,6 +336,7 @@ class conv_net(nn.Module):
 
                     # forward.
                     self.fwd_pass(batch_X, batch_embed, batch_y, optimizer, loss_function, train=True, report=False)
+                self.eval()
 
                 # get the number of random features to test. In the rare case where the training size is smaller than the validation
                 # get the whole size of training.
@@ -331,10 +352,10 @@ class conv_net(nn.Module):
                 losses.append(val_loss)
 
                 # Print accuracies to stdout and log them into the file.
-                print(f"acc: {round(float(acc), 8)}, loss: {round(float(loss), 8)}, val_acc: {round(float(val_acc), 8)}, val_loss: {round(float(val_loss), 8)}")
+                print(
+                    f"epoch: {epoch}, acc: {round(float(acc), 6)}, loss: {round(float(loss), 8)}, val_acc: {round(float(val_acc), 6)}, val_loss: {round(float(val_loss), 8)}")
                 f.write(
-                    f"{file_name},{round(time.time(), 3)},{float(acc)},{float(loss)},{float(val_acc)},{float(val_loss)}\n")
-
+                    f"{file_name},{epoch},{float(acc)},{float(loss)},{float(val_acc)},{float(val_loss)}\n")
                 if not self.is_learning(losses,val_loss):
                     print("I'm not learning :(. Try other hyperparameters. Stopping.")
                     return

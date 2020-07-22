@@ -14,7 +14,7 @@ CNN for backchanneling.
 """
 class conv_net(nn.Module):
 
-    def __init__(self, setup, input_rows, input_cols, max, min):
+    def __init__(self, setup, input_rows, input_cols, max, min, cuda_device):
         """
         Initializes the CNN.
         :param setup: JSON describing the configuration of the CNN.
@@ -32,9 +32,9 @@ class conv_net(nn.Module):
         self.check_last_losses = 5
 
         # set up a cuda device if available
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda:0")
-            print("Running on the GPU")
+        if torch.cuda.is_available() and cuda_device != -1:
+            self.device = torch.device(f"cuda:{cuda_device}")
+            print(f"Running on the GPU {cuda_device}")
         else:
             self.device = torch.device("cpu")
             print("Running on the CPU")

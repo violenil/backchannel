@@ -11,7 +11,7 @@ class parser(object):
         """
         self.parser = argparse.ArgumentParser(description='Backchanneling CNN.')
         self.parser.add_argument('-b', metavar='batch_size', type=int, default=BATCH_SIZE,help='Sets the batch size.')
-
+        self.parser.add_argument('--cuda-device', metavar='gpu_id', type=int, default=0, help='Selects the cuda device. If -1, then CPU is selected.')
 
         self.subparsers = self.parser.add_subparsers(title='Mode',help='Action to perform.')
 

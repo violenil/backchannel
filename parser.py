@@ -25,7 +25,41 @@ class parser(object):
         self.test_parser.add_argument('-m', metavar='model', type=str,
                             help='Path to the CNN model to be loaded.',required=True)
         
-        self.test_parser.add_argument('-data', metavar='datasets', type=str, nargs=1, help='Directory where all the data lives.', required=True)
+        self.test_parser.add_argument('-data', metavar='datasets', type=str, nargs=1, help='''Directory where all the data lives. Format:\n
+        ├── test\n
+        │   ├── bc\n
+        │   │   ├── data.3dmfcc.npy\n
+        │   │   ├── data.mfcc.npy\n
+        │   │   ├── listeners.npy\n
+        │   │   └── speakers.npy\n
+        │   └── fc\n
+        │       ├── data.3dmfcc.npy\n
+        │       ├── data.mfcc.npy\n
+        │       ├── listeners.npy\n
+        │       └── speakers.npy\n
+        ├── train\n
+        │   ├── bc\n
+        │   │   ├── data.3dmfcc.npy\n
+        │   │   ├── data.mfcc.npy\n
+        │   │   ├── listeners.npy\n
+        │   │   └── speakers.npy\n
+        │   └── fc\n
+        │       ├── data.3dmfcc.npy\n
+        │       ├── data.mfcc.npy\n
+        │       ├── listeners.npy\n
+        │       └── speakers.npy\n
+        └── val\n
+            ├── bc\n
+            │   ├── data.3dmfcc.npy\n
+            │   ├── data.mfcc.npy\n
+            │   ├── listeners.npy\n
+            │   └── speakers.npy\n
+            └── fc\n
+                ├── data.3dmfcc.npy\n
+                ├── data.mfcc.npy\n
+                ├── listeners.npy\n
+                └── speakers.npy
+        ''', required=True)
 
         # define the training parser.
 
@@ -33,7 +67,41 @@ class parser(object):
 
         self.train_parser.add_argument('-C', metavar='CNN_config', type=str, help='Loads the CNN configuration.',default=CNN_CONFIG)
 
-        self.train_parser.add_argument('-data', metavar='datasets', type=str, nargs=1, help='Directory where all the data lives.', required=True)
+        self.train_parser.add_argument('-data', metavar='datasets', type=str, nargs=1, help='''Directory where all the data lives. Format:\n
+        ├── test\n
+        │   ├── bc\n
+        │   │   ├── data.3dmfcc.npy\n
+        │   │   ├── data.mfcc.npy\n
+        │   │   ├── listeners.npy\n
+        │   │   └── speakers.npy\n
+        │   └── fc\n
+        │       ├── data.3dmfcc.npy\n
+        │       ├── data.mfcc.npy\n
+        │       ├── listeners.npy\n
+        │       └── speakers.npy\n
+        ├── train\n
+        │   ├── bc\n
+        │   │   ├── data.3dmfcc.npy\n
+        │   │   ├── data.mfcc.npy\n
+        │   │   ├── listeners.npy\n
+        │   │   └── speakers.npy\n
+        │   └── fc\n
+        │       ├── data.3dmfcc.npy\n
+        │       ├── data.mfcc.npy\n
+        │       ├── listeners.npy\n
+        │       └── speakers.npy\n
+        └── val\n
+            ├── bc\n
+            │   ├── data.3dmfcc.npy\n
+            │   ├── data.mfcc.npy\n
+            │   ├── listeners.npy\n
+            │   └── speakers.npy\n
+            └── fc\n
+                ├── data.3dmfcc.npy\n
+                ├── data.mfcc.npy\n
+                ├── listeners.npy\n
+                └── speakers.npy
+        ''', required=True)
         
         self.train_parser.add_argument('-e', metavar='epochs', type=int, default=EPOCHS,help='Configures the #epochs')
 
@@ -47,6 +115,7 @@ class parser(object):
         help='Learn from the training data, and iteratively predict on the validation. Get a summary of the overall process.')
 
         self.train_parser.set_defaults(action="train")
+        self.train_parser.parse_args(['-h'])
 
     def parse_args(self):
         args = vars( self.parser.parse_args() )

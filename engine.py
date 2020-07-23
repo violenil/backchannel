@@ -9,11 +9,19 @@ def train(args):
     Train the CNN.
     :param args:
     """
+    dir = args['data'][0]
+
     # read training samples from disk, and prepare the dataset (i.e., shuffle, scaling, and moving the data to tensors.)
-    train_dataset = dataset.dataset(args['s'][0], args['s'][1], args['sp'][0], args['sp'][1], args['sn'][0], args['sn'][1])
+    trainBc = dir+'/train/bc'
+    trainFc = dir+'/train/fc'
+    train_dataset = dataset.dataset(trainBc+'/data.3dmfcc.npy', trainFc+'/data.3dmfcc.npy', trainBc+'/listeners.npy',
+                                         trainBc+'/speakers.npy', trainFc+'/listeners.npy', trainFc+'/speakers.npy')
 
     # same for the validation data. The data is scaled w.r.t. the values of the training data.
-    val_dataset = dataset.dataset(args['v'][0], args['v'][1], args['vp'][0], args['vp'][1], args['vn'][0], args['vn'][1], train_dataset.max,train_dataset.min)
+    valBc = dir+'/val/bc'
+    valFc = dir+'/val/fc'
+    val_dataset = dataset.dataset(valBc+'/data.3dmfcc.npy', valFc+'/data.3dmfcc.npy', valBc+'/listeners.npy',
+                                    valBc+'/speakers.npy', trainFc+'/listeners.npy', trainFc+'/speakers.npy')
 
     # set up a convolutional neural network.
     net = ai.conv_net(args['C'],train_dataset.nmfcc,train_dataset.nframes,train_dataset.no_of_total_speakers,train_dataset.max,train_dataset.min)

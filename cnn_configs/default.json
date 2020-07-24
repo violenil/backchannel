@@ -5,14 +5,14 @@
       "out_channels": 16,
       "kernel_width": 10,
       "pool_width": 2,
-      "drop_out": 0.5
+      "drop_out": 0.3
     }
   },
   "fully_connected": {
     "fci": {
       "input": -1,
       "output": 128,
-      "drop_out": 0.5
+      "drop_out": 0.4
     },
     "fc2": {
       "input": 128,

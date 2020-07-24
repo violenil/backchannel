@@ -16,14 +16,14 @@ def train(args):
     val_dataset = dataset.dataset(args['v'][0],args['v'][1],train_dataset.max,train_dataset.min)
 
     # set up a convolutional neural network.
-    net = ai.conv_net(args['C'],train_dataset.nmfcc,train_dataset.nframes,train_dataset.max,train_dataset.min)
+    net = ai.conv_net(args['C'],train_dataset.nmfcc,train_dataset.nframes,train_dataset.max,train_dataset.min,args['cuda_device'])
 
     # optional flag with optional parameter.
     if args ['report'] != '':
 
         try:
             # fit the data and report the results.
-            net.reported_fit(train_dataset.X, train_dataset.y, val_dataset.X, val_dataset.y , loss_function, args['lr'], args['b'], args['e'], args['report'])
+            net.reported_fit(train_dataset.X, train_dataset.y, val_dataset.X, val_dataset.y , loss_function, args['lr'], args['b'], args['e'], args['report'],args['fit_tensors'])
         except KeyboardInterrupt:
             pass
         # show how the data fitted w.r.t. the training and validation data.

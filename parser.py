@@ -11,7 +11,8 @@ class parser(object):
         """
         self.parser = argparse.ArgumentParser(description='Backchanneling CNN.')
         self.parser.add_argument('-b', metavar='batch_size', type=int, default=BATCH_SIZE,help='Sets the batch size.')
-
+        self.parser.add_argument('--cuda-device', metavar='gpu_id', type=int, default=0,
+                                 help='Selects the cuda device. If -1, then CPU is selected.')
 
         self.subparsers = self.parser.add_subparsers(title='Mode',help='Action to perform.')
 
@@ -47,6 +48,9 @@ class parser(object):
         self.train_parser.add_argument('-o', metavar='output_model', type=str,help='Provide a path to model to be saved.')
 
         self.train_parser.add_argument("-t","--train", action="store_true", default=True,help='Learn from the training samples and predict on the validation data')
+
+        self.train_parser.add_argument("--fit-tensors", action="store_true", default=False,
+                                       help='Preloads the tensors in the GPU (if availble) to speed up the training.')
 
         self.train_parser.add_argument("-r", "--report", default='', nargs='?', metavar='report_file',
         help='Learn from the training data, and iteratively predict on the validation. Get a summary of the overall process.')

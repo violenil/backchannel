@@ -16,7 +16,7 @@ CNN for backchanneling.
 """
 class conv_net(nn.Module):
 
-    def __init__(self, setup, input_rows, input_cols, max, min):
+    def __init__(self, setup, input_rows, input_cols, max, min, cuda_device):
         """
         Initializes the CNN.
         :param setup: JSON describing the configuration of the CNN.
@@ -34,9 +34,9 @@ class conv_net(nn.Module):
         self.check_last_losses = 5
 
         # set up a cuda device if available
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda:0")
-            print("Running on the GPU")
+        if torch.cuda.is_available() and cuda_device != -1:
+            self.device = torch.device(f"cuda:{cuda_device}")
+            print(f"Running on the GPU {cuda_device}")
         else:
             self.device = torch.device("cpu")
             print("Running on the CPU")
@@ -276,7 +276,7 @@ class conv_net(nn.Module):
         return True
 
 
-    def reported_fit(self, X_train, y_train, X_val, y_val, loss_function, lr, batch_size, epochs,file_name):
+    def reported_fit(self, X_train, y_train, X_val, y_val, loss_function, lr, batch_size, epochs,file_name,fit_tensors=False):
         """
         Trains the CNN and reports accuracy and loss on both validation and training data at each epoch. The reported data is also
         saved in a csv file.
@@ -290,6 +290,12 @@ class conv_net(nn.Module):
         :param epochs:
         :param file_name: write the reported accuracies and losses into this file.
         """
+        if fit_tensors:
+            X_train = X_train.to(self.device)
+            y_train = y_train.to(self.device)
+
+            X_val = X_val.to(self.device)
+            y_val = y_val.to(self.device)
 
         if not os.path.exists('reports/'):
             os.makedirs('reports/')

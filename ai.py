@@ -263,7 +263,7 @@ class conv_net(nn.Module):
 
         # grant no learning
         with torch.no_grad():
-            acc, loss = self.fwd_pass(X.view(-1,1,self.input_rows,self.input_cols).to(self.device),y.to(self.device), optimizer, loss_function)
+            acc, loss = self.fwd_pass(X.view(-1,1,self.input_rows,self.input_cols),y, optimizer, loss_function)
         return acc, loss
 
 
@@ -291,7 +291,11 @@ class conv_net(nn.Module):
         :param epochs:
         :param file_name: write the reported accuracies and losses into this file.
         """
+        X_train = X_train.to(self.device)
+        y_train = y_train.to(self.device)
 
+        X_val = X_val.to(self.device)
+        y_val = y_val.to(self.device)
         if not os.path.exists('reports/'):
             os.makedirs('reports/')
 
@@ -312,8 +316,8 @@ class conv_net(nn.Module):
                 for i in tqdm(random_idxs):
 
                     # get our batches
-                    batch_X = X_train[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
-                    batch_y = y_train[i:i+batch_size].to(self.device)
+                    batch_X = X_train[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols)
+                    batch_y = y_train[i:i+batch_size]
 
                     # forward.
                     self.fwd_pass(batch_X, batch_y, optimizer, loss_function, train=True, report=False)

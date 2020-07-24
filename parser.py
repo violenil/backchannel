@@ -48,6 +48,9 @@ class parser(object):
 
         self.train_parser.add_argument("-t","--train", action="store_true", default=True,help='Learn from the training samples and predict on the validation data')
 
+        self.train_parser.add_argument("--fit-tensors", action="store_true", default=False,
+                                       help='Preloads the tensors in the GPU (if availble) to speed up the training.')
+
         self.train_parser.add_argument("-r", "--report", default='', nargs='?', metavar='report_file',
         help='Learn from the training data, and iteratively predict on the validation. Get a summary of the overall process.')
 

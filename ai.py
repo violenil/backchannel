@@ -263,7 +263,7 @@ class conv_net(nn.Module):
 
         # grant no learning
         with torch.no_grad():
-            acc, loss = self.fwd_pass(X.view(-1,1,self.input_rows,self.input_cols),y, optimizer, loss_function)
+            acc, loss = self.fwd_pass(X.view(-1,1,self.input_rows,self.input_cols).to(self.device),y.to(self.device), optimizer, loss_function)
         return acc, loss
 
 
@@ -277,7 +277,7 @@ class conv_net(nn.Module):
         return True
 
 
-    def reported_fit(self, X_train, y_train, X_val, y_val, loss_function, lr, batch_size, epochs,file_name):
+    def reported_fit(self, X_train, y_train, X_val, y_val, loss_function, lr, batch_size, epochs,file_name, fit_tensors=False):
         """
         Trains the CNN and reports accuracy and loss on both validation and training data at each epoch. The reported data is also
         saved in a csv file.
@@ -291,11 +291,13 @@ class conv_net(nn.Module):
         :param epochs:
         :param file_name: write the reported accuracies and losses into this file.
         """
-        X_train = X_train.to(self.device)
-        y_train = y_train.to(self.device)
+        if fit_tensors:
+            X_train = X_train.to(self.device)
+            y_train = y_train.to(self.device)
 
-        X_val = X_val.to(self.device)
-        y_val = y_val.to(self.device)
+            X_val = X_val.to(self.device)
+            y_val = y_val.to(self.device)
+
         if not os.path.exists('reports/'):
             os.makedirs('reports/')
 
@@ -316,8 +318,8 @@ class conv_net(nn.Module):
                 for i in tqdm(random_idxs):
 
                     # get our batches
-                    batch_X = X_train[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols)
-                    batch_y = y_train[i:i+batch_size]
+                    batch_X = X_train[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
+                    batch_y = y_train[i:i+batch_size].to(self.device)
 
                     # forward.
                     self.fwd_pass(batch_X, batch_y, optimizer, loss_function, train=True, report=False)

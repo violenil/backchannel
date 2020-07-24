@@ -23,7 +23,7 @@ def train(args):
 
         try:
             # fit the data and report the results.
-            net.reported_fit(train_dataset.X, train_dataset.y, val_dataset.X, val_dataset.y , loss_function, args['lr'], args['b'], args['e'], args['report'])
+            net.reported_fit(train_dataset.X, train_dataset.y, val_dataset.X, val_dataset.y , loss_function, args['lr'], args['b'], args['e'], args['report'], args['fit_tensors'])
         except KeyboardInterrupt:
             pass
 

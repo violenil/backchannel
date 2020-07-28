@@ -11,7 +11,8 @@ Holds a dataset.
 """
 class dataset(object):
 
-    def __init__(self,positive_samples_path,negative_samples_path,max = None, min = None):
+    def __init__(self, positive_samples_path, negative_samples_path, max = None, min = None, p_listeners_path = None ,
+                 p_speakers_path = None, n_listeners_path = None, n_speakers_path = None):
         """
         Reads the backchannel (positive samples) and frontchannel (negative samples) mfcc features from disk
         and prepares them for being used in the CNN.
@@ -22,6 +23,10 @@ class dataset(object):
         """
         positive = np.load(positive_samples_path)
         negative = np.load(negative_samples_path)
+
+
+
+
 
 
 
@@ -38,8 +43,6 @@ class dataset(object):
         # negative samples
         Xn = torch.Tensor(negative)
 
-        print(Xn.shape)
-
         # just concatenate
         X = torch.cat((Xp,Xn),0)
 
@@ -47,11 +50,10 @@ class dataset(object):
 
         # get the permumations to shuffle X and y.
         permutations = torch.randperm(X.shape[0])
+        print("X " + str(X.shape[0]))
 
         # shuffle the data!
         X = X[permutations]
-
-        print(X.shape)
 
         # create the y vector.
         y = torch.zeros((positive.shape[0]+negative.shape[0],2))
@@ -75,3 +77,27 @@ class dataset(object):
 
 
         self.X = (X - self.min) / (self.max - self.min) * 2 - 1  # scale between -1 and 1
+
+        #### embeddingsssss
+
+        self.no_of_total_speakers = 539  # from checking unique speakerID in dataset/annotation/speaker_annotation.txt
+
+        if p_speakers_path != None and n_speakers_path != None:
+            p_speakers = np.load(p_speakers_path)
+            n_speakers = np.load(n_speakers_path)
+
+            # speaker indices
+            pspeak = torch.Tensor(p_speakers)
+            nspeak = torch.Tensor(n_speakers)
+            self.sp = torch.cat((pspeak, nspeak), 0)
+            self.sp = self.sp[permutations].long()
+
+        if p_listeners_path != None and n_listeners_path != None:
+            p_listeners = np.load(p_listeners_path)
+            n_listeners = np.load(n_listeners_path)
+
+            # listener indices
+            plist = torch.Tensor(p_listeners)
+            nlist = torch.Tensor(n_listeners)
+            self.ls = torch.cat((plist, nlist), 0)
+            self.ls = self.ls[permutations].long()

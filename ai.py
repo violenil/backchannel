@@ -1,3 +1,5 @@
+import os
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,14 +9,12 @@ from tqdm import tqdm
 import os
 import json
 import random
-
-
 """
-CNN for backchanneling.
+CNN + embeddings for backchanneling prediction.
 """
 class conv_net(nn.Module):
 
-    def __init__(self, setup, input_rows, input_cols, max, min, cuda_device):
+    def __init__(self, setup, input_rows, input_cols, no_of_speakers, max, min, cuda_device, type):
         """
         Initializes the CNN.
         :param setup: JSON describing the configuration of the CNN.
@@ -24,6 +24,9 @@ class conv_net(nn.Module):
         :param input_cols: number of frames (#cols of the matrix)
         """
         super().__init__()
+
+
+        self.type = type
 
         # rounding used on the losses
         self.eps = 7
@@ -48,11 +51,24 @@ class conv_net(nn.Module):
         # number of frames
         self.input_cols = input_cols
 
+        # Create embeddings for listeners & speakers
+        embed_dim = 5
+        if type == "listener" or type == "both":
+
+            self.listener_embedding = nn.Embedding(no_of_speakers, embed_dim)
+            self.list_embedding_fc = nn.Linear(embed_dim, embed_dim)
+            self.l_embed_drop = nn.Dropout(p=0)  # for listener embeddings
+
+        if type == "speaker" or type == "both":
+
+            self.speaker_embedding = nn.Embedding(no_of_speakers, embed_dim)
+            self.speak_embedding_fc = nn.Linear(embed_dim, embed_dim)
+            self.s_embed_drop = nn.Dropout(p=0)  # for speaker embeddings
+
         # read the CNN configuraion file
         with open(setup) as f:
             config = json.load(f)
         print(config)
-        print(type(config))
 
         convolutional_layers = []
 
@@ -71,13 +87,16 @@ class conv_net(nn.Module):
             cnn_drop_outs.append(nn.Dropout(p=drop_out))
             convolutional_layers.append( nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(input_rows,kernel_width)) )
 
-        # So that pytorch recognises the layers and drop_outs.
+        # So that pythorch recognises the layers.
+        self.convolutionals = nn.ModuleList(convolutional_layers)
+        self.cnn_drop = nn.ModuleList(cnn_drop_outs)
+
+
 
         self.convolutionals = nn.ModuleList(convolutional_layers)
         self.cnn_drop = nn.ModuleList(cnn_drop_outs)
         # mock feature for getting the number of output features of the c.l.
-        x = torch.randn(input_rows,input_cols).view(-1,1,input_rows, input_cols)
-
+        x = torch.randn(1,input_rows,input_cols).view(-1,1,input_rows, input_cols)
 
         self._to_linear = None
 
@@ -96,6 +115,8 @@ class conv_net(nn.Module):
             else:
                 drop_out = 0.0
 
+            fc_drop_outs.append(nn.Dropout(p=drop_out))
+
 
             fc_drop_outs.append(nn.Dropout(p=drop_out))
             # a -1 in the number of input neurons refers to the size of the features after the convolutional layers.
@@ -106,6 +127,12 @@ class conv_net(nn.Module):
 
         self.linears = nn.ModuleList(fcs)
         self.fc_drop = nn.ModuleList(fc_drop_outs)
+
+        if type == "both":
+            self.final_linear = nn.Linear(output+embed_dim+embed_dim, 2)
+
+        if type == "speaker" or type == "listener":
+            self.final_linear = nn.Linear(output + embed_dim, 2)
 
 
         # make this available in whatever the device is
@@ -118,36 +145,62 @@ class conv_net(nn.Module):
         :param x: input
         :return: x after the convolution.
         """
-        for layer, drop in zip(self.convolutionals,self.cnn_drop):
-            x = F.max_pool2d(F.relu( drop( layer(x) ) ) ,(1,2))
+
+        for layer, drop in zip(self.convolutionals, self.cnn_drop):
+            x = F.max_pool2d(F.relu(drop(layer(x))), (1, 2))
 
         if self._to_linear is None:
-            print(x[0].shape)
+            print(x.shape)
             self._to_linear = x[0].shape[0]*x[0].shape[1]*x[0].shape[2]
 
         return x
 
 
-    def forward(self, x):
+    def forward(self, x, list_embed, speak_embed):
         """
         feeds forward x through the CNN
         :param x: input vector
+        :param embed: embedding vector (must be Long not Float)
         :return: probability of backchannel and frontchannel.
         """
         x = self.convs(x)
 
         x = x.view(-1, self._to_linear)
 
-        for layer,drop in zip(self.linears[:-1], self.fc_drop[:-1] ):
-            x = F.relu( drop( layer(x) ) )
 
-        x = self.fc_drop [-1] ( self.linears[-1] (x) )
+        for layer, drop in zip(self.linears[:-1], self.fc_drop[:-1]):
+            x = F.relu(drop(layer(x)))
 
-        return F.softmax(x, dim=1)
+        x = self.fc_drop[-1](self.linears[-1](x))
+
+        if self.type == "listener" or self.type == "both":
+            #listener
+            e1 = self.listener_embedding(list_embed)
+            e1 = F.relu(self.l_embed_drop(self.list_embedding_fc(e1)))
+
+        if self.type == "speaker" or self.type == "both":
+            #speaker
+            e2 = self.speaker_embedding(speak_embed)
+            e2 = F.relu(self.s_embed_drop(self.speak_embedding_fc(e2)))
+
+        if self.type == "both":
+            concat = torch.cat([x,e1,e2], dim=1)
+            u = self.final_linear(concat)
+            return F.softmax(u, dim=1)
+        elif self.type == "listener":
+            concat = torch.cat([x, e1], dim=1)
+            u = self.final_linear(concat)
+            return F.softmax(u, dim=1)
+        elif self.type == "speaker":
+            concat = torch.cat([x, e2], dim=1)
+            u = self.final_linear(concat)
+            return F.softmax(u, dim=1)
+        else:
+            return F.softmax(x,dim=1)
 
 
 
-    def fit (self, X, y, batch_size, epochs, loss_function, lr):
+    def fit (self, dataset, batch_size, epochs, loss_function, lr):
         """
         Trains the CNN.
         :param X: training samples
@@ -164,19 +217,21 @@ class conv_net(nn.Module):
         for epoch in range(epochs):
 
             # set how the batches are gonna be forwaded.
-            random_idxs = list(range(0, len(X), batch_size))
-
+            random_idxs = list(range(0, len(dataset.X), batch_size))
             random.shuffle(random_idxs)
             for i in tqdm(random_idxs):
 
                 # get the batches
-                batch_X = X[i:i+batch_size].view(-1,1,self.input_rows, self.input_cols).to(self.device)
-                batch_y = y[i:i+batch_size].to(self.device)
+                batch_X = dataset.X[i:i+batch_size].view(-1,1,self.input_rows, self.input_cols).to(self.device)
+                batch_y = dataset.y[i:i+batch_size].to(self.device)
+                batch_ls_embed = dataset.ls[i:i+batch_size].to(self.device)
+                batch_sp_embed = dataset.sp[i:i + batch_size].to(self.device)
 
                 self.zero_grad()
 
                 # forward
-                outputs = self(batch_X)
+                outputs = self(batch_X, batch_ls_embed, batch_sp_embed)
+                
 
                 loss = loss_function(outputs, batch_y)
 
@@ -186,7 +241,7 @@ class conv_net(nn.Module):
             print(f"Epoch: {epoch}. Loss: {loss}")
 
 
-    def predict(self, X, y, batch_size):
+    def predict(self, dataset, batch_size):
         """
         Calculates the accuracy of the model on a test dataset.
         :param X: test samples
@@ -194,32 +249,27 @@ class conv_net(nn.Module):
         :param batch_size:
         """
         self.eval()
-        correct = 0
-        total = 0
         acc = 0
         with torch.no_grad():
-            for i in tqdm(range(0,len(X),batch_size)):
-                batch_X = X[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
-                batch_y = y[i:i+batch_size].to(self.device)
-                #real_class = torch.argmax(test_y[i])
-                #net_out = net(test_X[i].view(-1,1,N_FEATURES).to(device))[0]
-                #predicted_class = torch.argmax(net_out)
-                #loss = loss_function(outputs,y)
-                outputs = self(batch_X)
+            for i in tqdm(range(0,len(dataset.X),batch_size)):
+                batch_X = dataset.X[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
+                batch_y = dataset.y[i:i+batch_size].to(self.device)
+
+                batch_ls_embed = dataset.ls[i:i+batch_size].to(self.device) if self.type == "listener" or self.type == "both" else None
+                batch_sp_embed = dataset.sp[i:i+batch_size].to(self.device) if self.type == "speaker" or self.type == "both" else None
+
+                outputs = self(batch_X, batch_ls_embed, batch_sp_embed)
 
                 matches = [ torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs,batch_y)]
                 acc += matches.count(True)
 
-                #if predicted_class == real_class:
-                    #correct += 1
-                #total += 1
-            acc /= len(X)
+            acc /= len(dataset.X)
 
         print(f"Accuracy: {round(acc,3)}")
 
 
 
-    def fwd_pass( self, X, y, optimizer, loss_function, train=False, report=True):
+    def fwd_pass( self, X, ls_emb, sp_emb, y, optimizer, loss_function, train=False, report=True):
         """
         forwards the data, and performs backpropagation and optimiztion when `train` flag is True.
         Also reports the accuracy and loss.
@@ -232,7 +282,7 @@ class conv_net(nn.Module):
         """
         if train:
             self.zero_grad()
-        outputs = self(X)
+        outputs = self(X, ls_emb, sp_emb)
         loss = loss_function(outputs, y)
 
         if train:
@@ -247,7 +297,7 @@ class conv_net(nn.Module):
             return None,None
 
 
-    def predict_random_chunk(self, X, y , optimizer, loss_function, size=32):
+    def predict_random_chunk(self, dataset , optimizer, loss_function, size=32):
         """
         Get the accuracy and lost a random chunk of data.
         :param X: samples to be predicted
@@ -258,12 +308,15 @@ class conv_net(nn.Module):
         :return: accuracy and loss.
         """
         # get a random chunk from the test data
-        random_start = np.random.randint(len(X)-size)
-        X,y = X[random_start:random_start+size], y [random_start:random_start+size]
+        random_start = np.random.randint(len(dataset.X)-size)
+        X =  dataset.X[random_start:random_start+size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
+        y = dataset.y[random_start:random_start+size].to(self.device)
+        ls_emb = dataset.ls[random_start:random_start+size].to(self.device) if self.type == "listener" or self.type == "both" else None
+        sp_emb = dataset.sp[random_start:random_start+size].to(self.device) if self.type == "speaker" or self.type == "both" else None
 
         # grant no learning
         with torch.no_grad():
-            acc, loss = self.fwd_pass(X.view(-1,1,self.input_rows,self.input_cols).to(self.device),y.to(self.device), optimizer, loss_function)
+            acc, loss = self.fwd_pass(X, ls_emb, sp_emb, y, optimizer, loss_function)
         return acc, loss
 
 
@@ -277,7 +330,8 @@ class conv_net(nn.Module):
         return True
 
 
-    def reported_fit(self, X_train, y_train, X_val, y_val, loss_function, lr, batch_size, epochs,file_name, fit_tensors=False):
+    def reported_fit(self, train_dataset, val_dataset, loss_function, lr, batch_size, epochs,file_name, fit_tensors=False):
+
         """
         Trains the CNN and reports accuracy and loss on both validation and training data at each epoch. The reported data is also
         saved in a csv file.
@@ -292,11 +346,9 @@ class conv_net(nn.Module):
         :param file_name: write the reported accuracies and losses into this file.
         """
         if fit_tensors:
-            X_train = X_train.to(self.device)
-            y_train = y_train.to(self.device)
+            train_dataset.X = train_dataset.X.to(self.device)
+            train_dataset.y = train_dataset.y.to(self.device)
 
-            X_val = X_val.to(self.device)
-            y_val = y_val.to(self.device)
 
         if not os.path.exists('reports/'):
             os.makedirs('reports/')
@@ -310,36 +362,41 @@ class conv_net(nn.Module):
         with open(f"reports/{file_name}","a") as f:
             for epoch in range(epochs):
 
+
                 # set how the batches are gonna be forwaded.
-                random_idxs = list(range(0, len(X_train), batch_size))
+                random_idxs = list(range(0, len(train_dataset.X), batch_size))
 
                 random.shuffle(random_idxs)
                 self.train()
-                for i in tqdm(random_idxs):
 
+                for i in tqdm(random_idxs):
                     # get our batches
-                    batch_X = X_train[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
-                    batch_y = y_train[i:i+batch_size].to(self.device)
+                    batch_X = train_dataset.X[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
+                    batch_y = train_dataset.y[i:i+batch_size].to(self.device)
+                    batch_ls_embed = train_dataset.ls[i:i + batch_size].to(self.device) if self.type == "listener" or self.type == "both" else None
+                    batch_sp_embed = train_dataset.sp[i:i + batch_size].to(self.device) if self.type == "speaker" or self.type == "both" else None
 
                     # forward.
-                    self.fwd_pass(batch_X, batch_y, optimizer, loss_function, train=True, report=False)
+                    self.fwd_pass(batch_X, batch_ls_embed, batch_sp_embed, batch_y, optimizer, loss_function, train=True, report=False)
 
                 self.eval()
                 # get the number of random features to test. In the rare case where the training size is smaller than the validation
                 # get the whole size of training.
-                test_size = X_val.shape[0] - 1 if X_val.shape[0] - 1 < X_train.shape[0] else X_train.shape[0] - 1
+                test_size = val_dataset.X.shape[0] - 1 if val_dataset.X.shape[0] - 1 < train_dataset.X.shape[0] else train_dataset.X.shape[0] - 1
 
                 # Get the accuracies of a random chunk of the training data.
-                acc, loss = self.predict_random_chunk(X_train, y_train, optimizer, loss_function, size=test_size)
+                acc, loss = self.predict_random_chunk(train_dataset, optimizer, loss_function, size=test_size)
 
 
                 # Get the accuracies of a random chunk of the test data.
-                val_acc, val_loss = self.predict_random_chunk(X_val, y_val, optimizer, loss_function, size=test_size)
+                val_acc, val_loss = self.predict_random_chunk(val_dataset, optimizer, loss_function, size=test_size)
 
                 losses.append(val_loss)
 
                 # Print accuracies to stdout and log them into the file.
-                print(f"epoch: {epoch}, acc: {round(float(acc), 6)}, loss: {round(float(loss), 8)}, val_acc: {round(float(val_acc), 6)}, val_loss: {round(float(val_loss), 8)}")
+
+                print(
+                    f"epoch: {epoch}, acc: {round(float(acc), 6)}, loss: {round(float(loss), 8)}, val_acc: {round(float(val_acc), 6)}, val_loss: {round(float(val_loss), 8)}")
                 f.write(
                     f"{file_name},{epoch},{float(acc)},{float(loss)},{float(val_acc)},{float(val_loss)}\n")
 

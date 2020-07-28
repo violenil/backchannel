@@ -4,7 +4,15 @@
 Plots/*
 __pycache__/*
 cnn_configs/*
+<<<<<<< HEAD
 *.csv
 *.cnn
 reports/*
 *.pdf
+=======
+Plots/*
+*.csv
+*.cnn
+reports/*
+*.pdf
+>>>>>>> 94166c40c44071b4735c289dc71ad8f9b10d5571

@@ -60,6 +60,7 @@ def train(args):
 
         try:
             # fit the data and report the results.
+
             net.reported_fit(train_dataset, val_dataset, loss_function, args['lr'], args['b'], args['e'], args['report'],args['fit_tensors'])
 
         except KeyboardInterrupt:

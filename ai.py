@@ -14,6 +14,7 @@ CNN + embeddings for backchanneling prediction.
 """
 class conv_net(nn.Module):
 
+
     def __init__(self, setup, input_rows, input_cols, no_of_speakers, max, min, cuda_device, type):
         """
         Initializes the CNN.
@@ -71,6 +72,7 @@ class conv_net(nn.Module):
         print(config)
 
         convolutional_layers = []
+        cnn_drop_outs = []
 
         cnn_drop_outs = []
 
@@ -90,7 +92,6 @@ class conv_net(nn.Module):
         # So that pythorch recognises the layers.
         self.convolutionals = nn.ModuleList(convolutional_layers)
         self.cnn_drop = nn.ModuleList(cnn_drop_outs)
-
 
 
         self.convolutionals = nn.ModuleList(convolutional_layers)
@@ -116,7 +117,6 @@ class conv_net(nn.Module):
                 drop_out = 0.0
 
             fc_drop_outs.append(nn.Dropout(p=drop_out))
-
 
             fc_drop_outs.append(nn.Dropout(p=drop_out))
             # a -1 in the number of input neurons refers to the size of the features after the convolutional layers.
@@ -167,7 +167,6 @@ class conv_net(nn.Module):
 
         x = x.view(-1, self._to_linear)
 
-
         for layer, drop in zip(self.linears[:-1], self.fc_drop[:-1]):
             x = F.relu(drop(layer(x)))
 
@@ -197,6 +196,7 @@ class conv_net(nn.Module):
             return F.softmax(u, dim=1)
         else:
             return F.softmax(x,dim=1)
+
 
 
 
@@ -330,6 +330,7 @@ class conv_net(nn.Module):
         return True
 
 
+
     def reported_fit(self, train_dataset, val_dataset, loss_function, lr, batch_size, epochs,file_name, fit_tensors=False):
 
         """
@@ -371,6 +372,8 @@ class conv_net(nn.Module):
                 random.shuffle(random_idxs)
                 self.train()
 
+                self.train()
+
                 for i in tqdm(random_idxs):
                     # get our batches
                     batch_X = train_dataset.X[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
@@ -396,7 +399,6 @@ class conv_net(nn.Module):
                 losses.append(val_loss)
 
                 # Print accuracies to stdout and log them into the file.
-
                 print(
                     f"epoch: {epoch}, acc: {round(float(acc), 6)}, loss: {round(float(loss), 8)}, val_acc: {round(float(val_acc), 6)}, val_loss: {round(float(val_loss), 8)}")
                 f.write(

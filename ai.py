@@ -348,6 +348,8 @@ class conv_net(nn.Module):
         if fit_tensors:
             train_dataset.X = train_dataset.X.to(self.device)
             train_dataset.y = train_dataset.y.to(self.device)
+            train_dataset.ls = train_dataset.ls.to(self.device)
+            train_dataset.sp = train_dataset.sp.to(self.device)
 
 
         if not os.path.exists('reports/'):

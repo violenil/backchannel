@@ -6,20 +6,21 @@ import dataset
 import viewer
 
 
-def get_dataset(type, args, dataset_flag, positive_flag, negative_flag, max = None, min = None):
+def get_dataset(type, positive_mfcc, negative_mfcc, positive_speakers, negative_speakers, positive_listeners,
+                negative_listeners, max = None, min = None):
 
 
     if type == "both":
-        return dataset.dataset(args[dataset_flag][0], args[dataset_flag][1], max = max, min = min, p_listeners_path = args[positive_flag][0] ,
-                 p_speakers_path = args[positive_flag][1], n_listeners_path = args[negative_flag][0], n_speakers_path = args[negative_flag][1] )
+        return dataset.dataset(positive_mfcc, negative_mfcc, max = max, min = min, p_listeners_path = positive_listeners ,
+                 p_speakers_path = positive_speakers, n_listeners_path = negative_listeners, n_speakers_path = negative_speakers )
     elif type == "speaker":
-        return dataset.dataset(args[dataset_flag][0], args[dataset_flag][1], max = max, min = min, p_listeners_path = None ,
-                 p_speakers_path = args[positive_flag], n_listeners_path = None, n_speakers_path = args[negative_flag] )
+        return dataset.dataset(positive_mfcc, negative_mfcc, max = max, min = min, p_listeners_path = None ,
+                 p_speakers_path = positive_speakers, n_listeners_path = None, n_speakers_path = negative_speakers )
     elif type == "listener":
-        return dataset.dataset(args[dataset_flag][0], args[dataset_flag][1],  max = max, min = min, p_listeners_path = args[positive_flag] ,
-                 p_speakers_path = None, n_listeners_path = args[negative_flag], n_speakers_path = None )
+        return dataset.dataset(positive_mfcc, negative_mfcc,  max = max, min = min, p_listeners_path = positive_listeners ,
+                 p_speakers_path = None, n_listeners_path = negative_listeners, n_speakers_path = None )
     else:
-        return dataset.dataset(args[dataset_flag][0], args[dataset_flag][1], max = max, min = min, p_listeners_path=None,
+        return dataset.dataset(positive_mfcc, negative_mfcc, max = max, min = min, p_listeners_path=None,
                                p_speakers_path=None, n_listeners_path=None, n_speakers_path=None)
 
 
@@ -29,11 +30,24 @@ def train(args):
     Train the CNN.
     :param args:
     """
+
     # read training samples from disk, and prepare the dataset (i.e., shuffle, scaling, and moving the data to tensors.)
-    train_dataset = get_dataset(args['type'],args,'s','sp','sn')
+
+    train_dataset = get_dataset(args['type'],args['train_positive_mfcc'],
+                                args['train_negative_mfcc'],
+                                args['train_positive_speakers'],
+                                args['train_negative_speakers'],
+                                args['train_positive_listeners'],
+                                args['train_negative_listeners'])
 
     # same for the validation data. The data is scaled w.r.t. the values of the training data.
-    val_dataset = get_dataset(args['type'],args,'v','vp','vn', max = train_dataset.max, min = train_dataset.min)
+    val_dataset = get_dataset(args['type'],args['val_positive_mfcc'],
+                                args['val_negative_mfcc'],
+                                args['val_positive_speakers'],
+                                args['val_negative_speakers'],
+                                args['val_positive_listeners'],
+                                args['val_negative_listeners'],
+                                max = train_dataset.max, min = train_dataset.min)
 
     # set up a convolutional neural network.
 
@@ -85,7 +99,14 @@ def test (args):
 
     # load the test dataset from disk.
 
-    test = get_dataset(args['type'], args, 'd', 'dp', 'dn', net.max, net.min)
+    test  = get_dataset(args['type'],
+                        args['test_positive_mfcc'],
+                        args['test_negative_mfcc'],
+                        args['test_positive_speakers'],
+                        args['test_negative_speakers'],
+                        args['test_positive_listeners'],
+                        args['test_negative_listeners'],
+                        net.max, net.min)
 
     # predict!
     net.predict( test, args['b'] )

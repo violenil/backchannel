@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import numpy as np
+import numpy
 from tqdm import tqdm
 import os
 import json
@@ -278,7 +278,7 @@ class conv_net(nn.Module):
         :param optimizer: optimized to be used.
         :param loss_function:
         :param train: flag to decide on backpropagation
-        :return: accuracy and loss.
+        :return: accuracy, loss and confusion
         """
         if train:
             self.zero_grad()
@@ -290,9 +290,26 @@ class conv_net(nn.Module):
             optimizer.step()
 
         if report:
-            matches = [torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs, y)]
-            acc = matches.count(True)/len(matches)
-            return acc, loss
+            tp = 0
+            tn = 0
+            fn = 0
+            fp = 0
+            for i,j in zip(outputs, y):
+                if torch.argmax(i) == torch.argmax(j):
+                    if j.numpy()[0] == 1: #positive instance
+                        tp += 1
+                    else: 
+                        tn += 1
+                else:
+                    if j.numpy()[0] == 1:
+                        fn += 1
+                    else:
+                        fp += 1
+
+            #matches = [torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs, y)]
+            acc = (tp+tn)/(tp+tn+fp+fn)
+            conf = [tp, fp, fn, tn]
+            return acc, loss, conf
         else:
             return None,None
 
@@ -308,7 +325,7 @@ class conv_net(nn.Module):
         :return: accuracy and loss.
         """
         # get a random chunk from the test data
-        random_start = np.random.randint(len(dataset.X)-size)
+        random_start = numpy.random.randint(len(dataset.X)-size)
         X =  dataset.X[random_start:random_start+size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
         y = dataset.y[random_start:random_start+size].to(self.device)
         ls_emb = dataset.ls[random_start:random_start+size].to(self.device) if self.type == "listener" or self.type == "both" else None
@@ -316,8 +333,8 @@ class conv_net(nn.Module):
 
         # grant no learning
         with torch.no_grad():
-            acc, loss = self.fwd_pass(X, ls_emb, sp_emb, y, optimizer, loss_function)
-        return acc, loss
+            acc, loss, conf = self.fwd_pass(X, ls_emb, sp_emb, y, optimizer, loss_function)
+        return acc, loss, conf
 
 
     def is_learning(self, lossess, curr_loss):
@@ -392,11 +409,11 @@ class conv_net(nn.Module):
                 test_size = val_dataset.X.shape[0] - 1 if val_dataset.X.shape[0] - 1 < train_dataset.X.shape[0] else train_dataset.X.shape[0] - 1
 
                 # Get the accuracies of a random chunk of the training data.
-                acc, loss = self.predict_random_chunk(train_dataset, optimizer, loss_function, size=test_size)
+                acc, loss, conf = self.predict_random_chunk(train_dataset, optimizer, loss_function, size=test_size)
 
 
                 # Get the accuracies of a random chunk of the test data.
-                val_acc, val_loss = self.predict_random_chunk(val_dataset, optimizer, loss_function, size=test_size)
+                val_acc, val_loss, val_conf = self.predict_random_chunk(val_dataset, optimizer, loss_function, size=test_size) #conf = [tp, fp, fn, tn]
 
                 losses.append(val_loss)
 
@@ -404,7 +421,7 @@ class conv_net(nn.Module):
                 print(
                     f"epoch: {epoch}, acc: {round(float(acc), 6)}, loss: {round(float(loss), 8)}, val_acc: {round(float(val_acc), 6)}, val_loss: {round(float(val_loss), 8)}")
                 f.write(
-                    f"{file_name},{epoch},{float(acc)},{float(loss)},{float(val_acc)},{float(val_loss)}\n")
+                    f"{file_name},{epoch},{float(acc)},{float(loss)},{float(val_acc)},{float(val_loss)},{int(val_conf[0])},{int(val_conf[1])},{int(val_conf[2])},{int(val_conf[3])}\n")
 
                 if not self.is_learning(losses,val_loss):
                     print("I'm not learning :(. Try other hyperparameters. Stopping.")

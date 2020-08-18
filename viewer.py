@@ -19,7 +19,7 @@ def create_acc_loss_graph(model_name, plot_output):
 
     for c in contents:
         if model_name in c:
-            name,timestamp,acc,loss,val_acc,val_loss = c.split(",")
+            name,timestamp,acc,loss,val_acc,val_loss, tp, fp, fn, tn = c.split(",")
 
             times.append(float(timestamp))
             accuracies.append(float(acc))

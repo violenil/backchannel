@@ -259,13 +259,28 @@ class conv_net(nn.Module):
                 batch_sp_embed = dataset.sp[i:i+batch_size].to(self.device) if self.type == "speaker" or self.type == "both" else None
 
                 outputs = self(batch_X, batch_ls_embed, batch_sp_embed)
+                tp = 0
+                tn = 0
+                fn = 0
+                fp = 0
+                for i,j in zip(outputs, y):
+                    if torch.argmax(i) == torch.argmax(j):
+                        if j.data.cpu().numpy()[0] == 1: #positive instance
+                            tp += 1
+                        else: 
+                            tn += 1
+                    else:
+                        if j.data.cpu().numpy()[0] == 1:
+                            fn += 1
+                        else:
+                            fp += 1
 
-                matches = [ torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs,batch_y)]
-                acc += matches.count(True)
-
-            acc /= len(dataset.X)
+                #matches = [torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs, y)]
+                conf = [tp, fp, fn, tn]
+                acc = (tp+tn)/(tp+tn+fp+fn)
 
         print(f"Accuracy: {round(acc,3)}")
+        print(f"Confusion: TP:{int(conf[0])}, FP:{int(conf[1])}, FN:{int(conf[2])}, TN:{int(conf[3])}")
 
 
 

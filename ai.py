@@ -279,7 +279,7 @@ class conv_net(nn.Module):
                 conf = [tp, fp, fn, tn]
                 acc = (tp+tn)/(tp+tn+fp+fn)
 
-        print(f"Accuracy: {round(acc,3)}")
+        print(f"Accuracy: {round(acc,6)}")
         print(f"Confusion: TP:{int(conf[0])}, FP:{int(conf[1])}, FN:{int(conf[2])}, TN:{int(conf[3])}")
 
 

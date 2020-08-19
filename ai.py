@@ -263,7 +263,7 @@ class conv_net(nn.Module):
                 tn = 0
                 fn = 0
                 fp = 0
-                for i,j in zip(outputs, y):
+                for i,j in zip(outputs, batch_y):
                     if torch.argmax(i) == torch.argmax(j):
                         if j.data.cpu().numpy()[0] == 1: #positive instance
                             tp += 1

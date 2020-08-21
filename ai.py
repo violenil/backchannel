@@ -9,6 +9,7 @@ from tqdm import tqdm
 import os
 import json
 import random
+from sklearn.metrics import precision_recall_fscore_support
 """
 CNN + embeddings for backchanneling prediction.
 """
@@ -249,7 +250,7 @@ class conv_net(nn.Module):
         :param batch_size:
         """
         self.eval()
-        acc = 0
+        yhat = torch.Tensor().to(self.device)
         with torch.no_grad():
             for i in tqdm(range(0,len(dataset.X),batch_size)):
                 batch_X = dataset.X[i:i+batch_size].view(-1,1,self.input_rows,self.input_cols).to(self.device)
@@ -259,28 +260,41 @@ class conv_net(nn.Module):
                 batch_sp_embed = dataset.sp[i:i+batch_size].to(self.device) if self.type == "speaker" or self.type == "both" else None
 
                 outputs = self(batch_X, batch_ls_embed, batch_sp_embed)
-                tp = 0
-                tn = 0
-                fn = 0
-                fp = 0
-                for i,j in zip(outputs, batch_y):
-                    if torch.argmax(i) == torch.argmax(j):
-                        if j.data.cpu().numpy()[0] == 1: #positive instance
-                            tp += 1
-                        else: 
-                            tn += 1
+
+                yhat = torch.cat((yhat, outputs), 0)
+
+
+
+            yf = dataset.y[:, 1]
+            yhatf = torch.argmax(yhat, 1).cpu()
+            stats = precision_recall_fscore_support(yf, yhatf)
+
+            tp = 0
+            tn = 0
+            fn = 0
+            fp = 0
+            for i, j in zip(yhat, dataset.y):
+                if torch.argmax(i) == torch.argmax(j):
+                    if j.data.numpy()[0] == 1:  # positive instance
+                        tp += 1
                     else:
-                        if j.data.cpu().numpy()[0] == 1:
-                            fn += 1
-                        else:
-                            fp += 1
+                        tn += 1
+                else:
+                    if j.data.numpy()[0] == 1:
+                        fn += 1
+                    else:
+                        fp += 1
+            acc = (tp + tn) / (tp + tn + fp + fn)
 
-                #matches = [torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs, y)]
-                conf = [tp, fp, fn, tn]
-                acc = (tp+tn)/(tp+tn+fp+fn)
+        print(f"Accuracy: {round(acc*100,4)}")
+        print(f"Confusion: TP: {tp}, FP: {tn}, FN: {fn}, TN: {tn}")
 
-        print(f"Accuracy: {round(acc,6)}")
-        print(f"Confusion: TP:{int(conf[0])}, FP:{int(conf[1])}, FN:{int(conf[2])}, TN:{int(conf[3])}")
+        print(f"Precision BC:    {round(stats[0][0]*100,4)}")
+        print(f"Precision NO BC: {round(stats[0][1]*100,4)}")
+        print(f"Recall BC:       {round(stats[1][0]*100,4)}")
+        print(f"Recall No BC:    {round(stats[1][1]*100,4)}")
+        print(f"F-score BC:      {round(stats[2][0]*100,4)}")
+        print(f"F-score No BC:   {round(stats[2][1]*100,4)}")
 
 
 

@@ -287,7 +287,7 @@ class conv_net(nn.Module):
             acc = (tp + tn) / (tp + tn + fp + fn)
 
         print(f"Accuracy: {round(acc*100,4)}")
-        print(f"Confusion: TP: {tp}, FP: {tn}, FN: {fn}, TN: {tn}")
+        print(f"Confusion: TP: {tp}, FP: {fp}, FN: {fn}, TN: {tn}")
 
         print(f"Precision BC:    {round(stats[0][0]*100,4)}")
         print(f"Precision NO BC: {round(stats[0][1]*100,4)}")

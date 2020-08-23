@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
+from sklearn.metrics import precision_recall_fscore_support
 from tqdm import tqdm
 import time
 import json
@@ -193,28 +194,45 @@ class conv_net(nn.Module):
         :param batch_size:
         """
         self.eval()
-        correct = 0
-        total = 0
-        acc = 0
+        yhat = torch.Tensor().to(self.device)
         with torch.no_grad():
-            for i in tqdm(range(0,len(X),batch_size)):
-                batch_X = X[i:i+batch_size].view(-1,3,self.input_rows,self.input_cols).to(self.device)
-                batch_y = y[i:i+batch_size].to(self.device)
-                #real_class = torch.argmax(test_y[i])
-                #net_out = net(test_X[i].view(-1,1,N_FEATURES).to(device))[0]
-                #predicted_class = torch.argmax(net_out)
-                #loss = loss_function(outputs,y)
+            for i in tqdm(range(0, len(X), batch_size)):
+                batch_X = X[i:i + batch_size].view(-1, 3, self.input_rows, self.input_cols).to(self.device)
+
                 outputs = self(batch_X)
 
-                matches = [ torch.argmax(i) == torch.argmax(j) for i,j in zip(outputs,batch_y)]
-                acc += matches.count(True)
+                yhat = torch.cat((yhat, outputs), 0)
 
-                #if predicted_class == real_class:
-                    #correct += 1
-                #total += 1
-            acc /= len(X)
+            yf = y[:, 1]
+            yhatf = torch.argmax(yhat, 1).cpu()
+            stats = precision_recall_fscore_support(yf, yhatf)
 
-        print(f"Accuracy: {round(acc,3)}")
+            tp = 0
+            tn = 0
+            fn = 0
+            fp = 0
+            for i, j in zip(yhat, y):
+                if torch.argmax(i) == torch.argmax(j):
+                    if j.data.numpy()[0] == 1:  # positive instance
+                        tp += 1
+                    else:
+                        tn += 1
+                else:
+                    if j.data.numpy()[0] == 1:
+                        fn += 1
+                    else:
+                        fp += 1
+            acc = (tp + tn) / (tp + tn + fp + fn)
+
+        print(f"Accuracy: {round(acc * 100, 4)}")
+        print(f"Confusion: TP: {tp}, FP: {fp}, FN: {fn}, TN: {tn}")
+
+        print(f"Precision BC:    {round(stats[0][0] * 100, 4)}")
+        print(f"Precision NO BC: {round(stats[0][1] * 100, 4)}")
+        print(f"Recall BC:       {round(stats[1][0] * 100, 4)}")
+        print(f"Recall No BC:    {round(stats[1][1] * 100, 4)}")
+        print(f"F-score BC:      {round(stats[2][0] * 100, 4)}")
+        print(f"F-score No BC:   {round(stats[2][1] * 100, 4)}")
 
 
 
